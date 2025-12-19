@@ -67,3 +67,9 @@
 - [x] Add category creation UI in admin panel
 - [x] Update Timeline component to show attached documents
 - [x] Update admin Timeline page to allow document attachment
+
+
+## GitHub Upload (Dec 20)
+- [ ] Export database schema and seed data
+- [ ] Create comprehensive README.md
+- [ ] Push all files to GitHub repository SHHEER-CASE

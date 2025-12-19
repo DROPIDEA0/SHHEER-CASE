@@ -11,7 +11,10 @@ import {
   timelineEvents, InsertTimelineEvent,
   evidenceItems, InsertEvidenceItem,
   videos, InsertVideo,
-  footerContent, InsertFooterContent
+  footerContent, InsertFooterContent,
+  timelineCategories, InsertTimelineCategory,
+  evidenceCategories, InsertEvidenceCategory,
+  timelineEventEvidence, InsertTimelineEventEvidence
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -395,4 +398,119 @@ export async function upsertFooterContent(data: InsertFooterContent) {
     await db.insert(footerContent).values(data);
     return getFooterContent();
   }
+}
+
+
+// ============ TIMELINE CATEGORIES ============
+export async function getTimelineCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timelineCategories).orderBy(asc(timelineCategories.displayOrder));
+}
+
+export async function getTimelineCategory(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(timelineCategories).where(eq(timelineCategories.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function createTimelineCategory(data: InsertTimelineCategory) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(timelineCategories).values(data);
+  return data;
+}
+
+export async function updateTimelineCategory(id: number, data: Partial<InsertTimelineCategory>) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(timelineCategories).set(data).where(eq(timelineCategories.id, id));
+  return getTimelineCategory(id);
+}
+
+export async function deleteTimelineCategory(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(timelineCategories).where(eq(timelineCategories.id, id));
+  return true;
+}
+
+// ============ EVIDENCE CATEGORIES ============
+export async function getEvidenceCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(evidenceCategories).orderBy(asc(evidenceCategories.displayOrder));
+}
+
+export async function getEvidenceCategory(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(evidenceCategories).where(eq(evidenceCategories.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function createEvidenceCategory(data: InsertEvidenceCategory) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(evidenceCategories).values(data);
+  return data;
+}
+
+export async function updateEvidenceCategory(id: number, data: Partial<InsertEvidenceCategory>) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(evidenceCategories).set(data).where(eq(evidenceCategories.id, id));
+  return getEvidenceCategory(id);
+}
+
+export async function deleteEvidenceCategory(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(evidenceCategories).where(eq(evidenceCategories.id, id));
+  return true;
+}
+
+// ============ TIMELINE EVENT EVIDENCE (Junction Table) ============
+export async function getTimelineEventEvidence(eventId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
+}
+
+export async function addEvidenceToEvent(eventId: number, evidenceId: number, displayOrder: number = 0) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(timelineEventEvidence).values({ eventId, evidenceId, displayOrder });
+  return { eventId, evidenceId, displayOrder };
+}
+
+export async function removeEvidenceFromEvent(eventId: number, evidenceId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  const { and } = await import("drizzle-orm");
+  await db.delete(timelineEventEvidence).where(
+    and(
+      eq(timelineEventEvidence.eventId, eventId),
+      eq(timelineEventEvidence.evidenceId, evidenceId)
+    )
+  );
+  return true;
+}
+
+export async function getEvidenceForEvent(eventId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Get evidence IDs linked to this event
+  const links = await db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
+  
+  if (links.length === 0) return [];
+  
+  // Get the actual evidence items
+  const evidenceIds = links.map(l => l.evidenceId);
+  const { inArray } = await import("drizzle-orm");
+  const items = await db.select().from(evidenceItems).where(inArray(evidenceItems.id, evidenceIds));
+  
+  return items;
 }

@@ -14,7 +14,8 @@ import {
   Home,
   ChevronRight,
   Menu,
-  X
+  X,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -31,7 +32,9 @@ const navItems = [
   { href: '/admin/hero', label: 'Hero Section', icon: FileText },
   { href: '/admin/parties', label: 'Case Parties', icon: Users },
   { href: '/admin/timeline', label: 'Timeline Events', icon: Clock },
+  { href: '/admin/timeline-categories', label: 'Timeline Categories', icon: Tag },
   { href: '/admin/evidence', label: 'Evidence', icon: FolderOpen },
+  { href: '/admin/evidence-categories', label: 'Evidence Categories', icon: Tag },
   { href: '/admin/videos', label: 'Videos', icon: Video },
   { href: '/admin/footer', label: 'Footer', icon: PanelBottom },
 ];

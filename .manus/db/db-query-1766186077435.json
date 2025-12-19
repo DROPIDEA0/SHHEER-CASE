@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO evidence_categories (`key`, label, color, icon, displayOrder) VALUES \n('licenses', 'Licenses', '#5D6B3D', 'FileCheck', 1),\n('emails', 'Emails', '#4A90A4', 'Mail', 2),\n('swift', 'SWIFT', '#D4A574', 'FileCode', 3),\n('whatsapp', 'WhatsApp', '#25D366', 'MessageCircle', 4),\n('letters', 'Letters', '#6B5B95', 'FileText', 5),\n('documents', 'Documents', '#808080', 'File', 6);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute INSERT INTO evidence_categories (`key`, label, color, icon, displayOrder) VALUES \n('licenses', 'Licenses', '#5D6B3D', 'FileCheck', 1),\n('emails', 'Emails', '#4A90A4', 'Mail', 2),\n('swift', 'SWIFT', '#D4A574', 'FileCode', 3),\n('whatsapp', 'WhatsApp', '#25D366', 'MessageCircle', 4),\n('letters', 'Letters', '#6B5B95', 'FileText', 5),\n('documents', 'Documents', '#808080', 'File', 6);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1501
+}

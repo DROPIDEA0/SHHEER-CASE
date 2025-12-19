@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO timeline_event_evidence (eventId, evidenceId) VALUES \n(1, 1),\n(2, 2),\n(2, 3),\n(3, 4),\n(4, 5),\n(5, 6),\n(5, 7),\n(6, 8),\n(7, 9),\n(8, 10);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute INSERT INTO timeline_event_evidence (eventId, evidenceId) VALUES \n(1, 1),\n(2, 2),\n(2, 3),\n(3, 4),\n(4, 5),\n(5, 6),\n(5, 7),\n(6, 8),\n(7, 9),\n(8, 10);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1560
+}

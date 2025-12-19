@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO timeline_categories (`key`, label, color, bgColor, textColor, lightColor, displayOrder) VALUES \n('foundation', 'Foundation', '#5D6B3D', 'bg-[#5D6B3D]', 'text-[#5D6B3D]', 'bg-[#5D6B3D]/10', 1),\n('investment-deal', 'Investment Deal', '#D4A574', 'bg-[#D4A574]', 'text-[#D4A574]', 'bg-[#D4A574]/10', 2),\n('swift-operations', 'SWIFT Operations', '#4A90A4', 'bg-[#4A90A4]', 'text-[#4A90A4]', 'bg-[#4A90A4]/10', 3),\n('critical-failure', 'Critical Failure', '#C75050', 'bg-[#C75050]', 'text-[#C75050]', 'bg-[#C75050]/10', 4),\n('legal-proceedings', 'Legal Proceedings', '#6B5B95', 'bg-[#6B5B95]', 'text-[#6B5B95]', 'bg-[#6B5B95]/10', 5);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute INSERT INTO timeline_categories (`key`, label, color, bgColor, textColor, lightColor, displayOrder) VALUES \n('foundation', 'Foundation', '#5D6B3D', 'bg-[#5D6B3D]', 'text-[#5D6B3D]', 'bg-[#5D6B3D]/10', 1),\n('investment-deal', 'Investment Deal', '#D4A574', 'bg-[#D4A574]', 'text-[#D4A574]', 'bg-[#D4A574]/10', 2),\n('swift-operations', 'SWIFT Operations', '#4A90A4', 'bg-[#4A90A4]', 'text-[#4A90A4]', 'bg-[#4A90A4]/10', 3),\n('critical-failure', 'Critical Failure', '#C75050', 'bg-[#C75050]', 'text-[#C75050]', 'bg-[#C75050]/10', 4),\n('legal-proceedings', 'Legal Proceedings', '#6B5B95', 'bg-[#6B5B95]', 'text-[#6B5B95]', 'bg-[#6B5B95]/10', 5);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1591
+}

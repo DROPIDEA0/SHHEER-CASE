@@ -39,6 +39,11 @@ export const appRouter = router({
     getVideos: publicProcedure.query(() => db.getVideos()),
     getFooterContent: publicProcedure.query(() => db.getFooterContent()),
     getSiteSettings: publicProcedure.query(() => db.getSiteSettings()),
+    getTimelineCategories: publicProcedure.query(() => db.getTimelineCategories()),
+    getEvidenceCategories: publicProcedure.query(() => db.getEvidenceCategories()),
+    getEventEvidence: publicProcedure
+      .input(z.object({ eventId: z.number() }))
+      .query(({ input }) => db.getEvidenceForEvent(input.eventId)),
   }),
 
   // ============ ADMIN API ============
@@ -140,6 +145,37 @@ export const appRouter = router({
         const result = await storagePut(fileKey, buffer, input.contentType);
         return result;
       }),
+
+    // Timeline Categories
+    getTimelineCategories: adminProcedure.query(() => db.getTimelineCategories()),
+    createTimelineCategory: adminProcedure
+      .input(z.object({ key: z.string(), label: z.string(), color: z.string().optional(), bgColor: z.string().optional(), textColor: z.string().optional(), lightColor: z.string().optional(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
+      .mutation(({ input }) => db.createTimelineCategory(input)),
+    updateTimelineCategory: adminProcedure
+      .input(z.object({ id: z.number(), data: z.object({ key: z.string().optional(), label: z.string().optional(), color: z.string().optional(), bgColor: z.string().optional(), textColor: z.string().optional(), lightColor: z.string().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
+      .mutation(({ input }) => db.updateTimelineCategory(input.id, input.data)),
+    deleteTimelineCategory: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteTimelineCategory(input.id)),
+
+    // Evidence Categories
+    getEvidenceCategories: adminProcedure.query(() => db.getEvidenceCategories()),
+    createEvidenceCategory: adminProcedure
+      .input(z.object({ key: z.string(), label: z.string(), color: z.string().optional(), icon: z.string().optional(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
+      .mutation(({ input }) => db.createEvidenceCategory(input)),
+    updateEvidenceCategory: adminProcedure
+      .input(z.object({ id: z.number(), data: z.object({ key: z.string().optional(), label: z.string().optional(), color: z.string().optional(), icon: z.string().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
+      .mutation(({ input }) => db.updateEvidenceCategory(input.id, input.data)),
+    deleteEvidenceCategory: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteEvidenceCategory(input.id)),
+
+    // Timeline Event Evidence (linking evidence to events)
+    getEventEvidence: adminProcedure
+      .input(z.object({ eventId: z.number() }))
+      .query(({ input }) => db.getEvidenceForEvent(input.eventId)),
+    addEvidenceToEvent: adminProcedure
+      .input(z.object({ eventId: z.number(), evidenceId: z.number(), displayOrder: z.number().default(0) }))
+      .mutation(({ input }) => db.addEvidenceToEvent(input.eventId, input.evidenceId, input.displayOrder)),
+    removeEvidenceFromEvent: adminProcedure
+      .input(z.object({ eventId: z.number(), evidenceId: z.number() }))
+      .mutation(({ input }) => db.removeEvidenceFromEvent(input.eventId, input.evidenceId)),
   }),
 });
 

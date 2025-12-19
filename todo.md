@@ -57,3 +57,13 @@
 - [x] Show file URLs in Videos admin page
 - [x] Ensure evidence items display correctly on public site
 - [x] Update evidence URLs in database
+
+## New Feature Requests (Dec 20)
+- [x] Restore Timeline view/download buttons for evidence
+- [x] Add category tags display (Critical Failure, SWIFT Operations, etc.) in Timeline
+- [x] Enable attaching documents to Timeline events from admin panel
+- [x] Create dynamic categories management system for Timeline
+- [x] Create dynamic categories management system for Evidence
+- [x] Add category creation UI in admin panel
+- [x] Update Timeline component to show attached documents
+- [x] Update admin Timeline page to allow document attachment

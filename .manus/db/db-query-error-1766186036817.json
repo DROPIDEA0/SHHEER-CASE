@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO timeline_categories (name, slug, color, bgColor, description, displayOrder) VALUES \n('Foundation', 'foundation', '#5D6B3D', '#F5F5DC', 'Project foundation and licensing events', 1),\n('Investment Deal', 'investment-deal', '#D4A574', '#FFF8E7', 'Investment negotiations and requirements', 2),\n('SWIFT Operations', 'swift-operations', '#4A90A4', '#E6F3F7', 'SWIFT messaging and bank communications', 3),\n('Critical Failure', 'critical-failure', '#C75050', '#FFE6E6', 'Critical errors and system failures', 4),\n('Legal Proceedings', 'legal-proceedings', '#6B5B95', '#F0EBF7', 'Legal actions and court proceedings', 5);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute INSERT INTO timeline_categories (name, slug, color, bgColor, description, displayOrder) VALUES \n('Foundation', 'foundation', '#5D6B3D', '#F5F5DC', 'Project foundation and licensing events', 1),\n('Investment Deal', 'investment-deal', '#D4A574', '#FFF8E7', 'Investment negotiations and requirements', 2),\n('SWIFT Operations', 'swift-operations', '#4A90A4', '#E6F3F7', 'SWIFT messaging and bank communications', 3),\n('Critical Failure', 'critical-failure', '#C75050', '#FFE6E6', 'Critical errors and system failures', 4),\n('Legal Proceedings', 'legal-proceedings', '#6B5B95', '#F0EBF7', 'Legal actions and court proceedings', 5);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'name' in 'field list'"
+  ]
+}

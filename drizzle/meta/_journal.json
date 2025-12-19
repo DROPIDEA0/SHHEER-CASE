@@ -15,6 +15,13 @@
       "when": 1766182608669,
       "tag": "0001_late_agent_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1766185055435,
+      "tag": "0002_nasty_riptide",
+      "breakpoints": true
     }
   ]
 }

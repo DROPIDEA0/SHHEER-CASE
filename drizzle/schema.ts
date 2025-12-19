@@ -208,3 +208,55 @@ export const footerContent = mysqlTable("footer_content", {
 
 export type FooterContent = typeof footerContent.$inferSelect;
 export type InsertFooterContent = typeof footerContent.$inferInsert;
+
+/**
+ * Timeline Categories - Dynamic categories for timeline events
+ */
+export const timelineCategories = mysqlTable("timeline_categories", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  label: varchar("label", { length: 200 }).notNull(),
+  color: varchar("color", { length: 50 }).default("#5d6d4e"),
+  bgColor: varchar("bgColor", { length: 50 }).default("bg-[#5d6d4e]"),
+  textColor: varchar("textColor", { length: 50 }).default("text-[#5d6d4e]"),
+  lightColor: varchar("lightColor", { length: 50 }).default("bg-[#5d6d4e]/10"),
+  displayOrder: int("displayOrder").default(0),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TimelineCategory = typeof timelineCategories.$inferSelect;
+export type InsertTimelineCategory = typeof timelineCategories.$inferInsert;
+
+/**
+ * Evidence Categories - Dynamic categories for evidence items
+ */
+export const evidenceCategories = mysqlTable("evidence_categories", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  label: varchar("label", { length: 200 }).notNull(),
+  color: varchar("color", { length: 50 }).default("#5d6d4e"),
+  icon: varchar("icon", { length: 50 }).default("FileText"),
+  displayOrder: int("displayOrder").default(0),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EvidenceCategory = typeof evidenceCategories.$inferSelect;
+export type InsertEvidenceCategory = typeof evidenceCategories.$inferInsert;
+
+/**
+ * Timeline Event Evidence - Junction table linking events to evidence
+ */
+export const timelineEventEvidence = mysqlTable("timeline_event_evidence", {
+  id: int("id").autoincrement().primaryKey(),
+  eventId: int("eventId").notNull(),
+  evidenceId: int("evidenceId").notNull(),
+  displayOrder: int("displayOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type TimelineEventEvidence = typeof timelineEventEvidence.$inferSelect;
+export type InsertTimelineEventEvidence = typeof timelineEventEvidence.$inferInsert;

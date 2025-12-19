@@ -11,64 +11,65 @@ import {
   FileText,
   Mail,
   MessageSquare,
-  Zap
+  Zap,
+  Eye,
+  Tag
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { trpc } from '@/lib/trpc';
 
 // Timeline Component - Olive Branch Justice Theme
-// Features: Chronological events, evidence cards, download functionality
+// Features: Chronological events, evidence cards, download functionality, dynamic categories
 
 interface TimelineEvent {
-  id: string;
+  id: number;
   date: string;
   time?: string;
   title: string;
   description: string;
-  category: 'foundation' | 'investment_deal' | 'swift_operations' | 'critical_failure' | 'legal_proceedings';
-  evidence?: Evidence[];
+  category: string;
+  tags?: string[];
 }
 
 interface Evidence {
-  id: string;
+  id: number;
   title: string;
-  description: string;
-  type: string;
-  imagePath?: string;
-  downloadable?: boolean;
+  description?: string;
+  category: string;
+  fileUrl?: string;
+  thumbnailUrl?: string;
 }
 
 interface TimelineProps {
   events: TimelineEvent[];
 }
 
-const categoryColors: Record<string, { bg: string; text: string; light: string }> = {
-  foundation: { bg: 'bg-[#5d6d4e]', text: 'text-[#5d6d4e]', light: 'bg-[#5d6d4e]/10' },
-  investment_deal: { bg: 'bg-[#c4a35a]', text: 'text-[#c4a35a]', light: 'bg-[#c4a35a]/10' },
-  swift_operations: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-50' },
-  critical_failure: { bg: 'bg-[#722f37]', text: 'text-[#722f37]', light: 'bg-[#722f37]/10' },
-  legal_proceedings: { bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-50' },
-};
-
-const categoryLabels: Record<string, string> = {
-  foundation: 'Foundation',
-  investment_deal: 'Investment Deal',
-  swift_operations: 'SWIFT Operations',
-  critical_failure: 'Critical Failure',
-  legal_proceedings: 'Legal Proceedings',
+// Default category styles (fallback if no dynamic categories)
+const defaultCategoryStyles: Record<string, { label: string; color: string; bg: string; text: string; light: string }> = {
+  foundation: { label: 'Foundation', color: '#5d6d4e', bg: 'bg-[#5d6d4e]', text: 'text-[#5d6d4e]', light: 'bg-[#5d6d4e]/10' },
+  investment_deal: { label: 'Investment Deal', color: '#c4a35a', bg: 'bg-[#c4a35a]', text: 'text-[#c4a35a]', light: 'bg-[#c4a35a]/10' },
+  swift_operations: { label: 'SWIFT Operations', color: '#3b82f6', bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-50' },
+  critical_failure: { label: 'Critical Failure', color: '#722f37', bg: 'bg-[#722f37]', text: 'text-[#722f37]', light: 'bg-[#722f37]/10' },
+  legal_proceedings: { label: 'Legal Proceedings', color: '#9333ea', bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-50' },
 };
 
 const evidenceIcons: Record<string, typeof Mail> = {
   email: Mail,
+  emails: Mail,
   document: FileText,
+  documents: FileText,
   whatsapp: MessageSquare,
   swift: Zap,
   letter: FileText,
+  letters: FileText,
   license: FileText,
+  licenses: FileText,
 };
 
 function EvidenceCard({ evidence, onView }: { evidence: Evidence; onView: () => void }) {
-  const Icon = evidenceIcons[evidence.type] || FileText;
+  const Icon = evidenceIcons[evidence.category?.toLowerCase()] || FileText;
   
   return (
     <motion.div
@@ -78,52 +79,75 @@ function EvidenceCard({ evidence, onView }: { evidence: Evidence; onView: () => 
       className="bg-white rounded-lg border border-[#c4a35a]/30 p-4 shadow-sm hover:shadow-md transition-all group"
     >
       <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-[#5d6d4e]/10">
-          <Icon className="w-5 h-5 text-[#5d6d4e]" />
-        </div>
+        {evidence.thumbnailUrl ? (
+          <img 
+            src={evidence.thumbnailUrl} 
+            alt="" 
+            className="w-12 h-12 object-cover rounded-lg border border-[#c4a35a]/20"
+          />
+        ) : (
+          <div className="p-2 rounded-lg bg-[#5d6d4e]/10">
+            <Icon className="w-5 h-5 text-[#5d6d4e]" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-semibold text-[#3d3d3d] truncate">
             {evidence.title}
           </h4>
           <p className="text-xs text-[#3d3d3d]/60 mt-1 line-clamp-2">
-            {evidence.description}
+            {evidence.description || evidence.category}
           </p>
         </div>
       </div>
       
-      {evidence.imagePath && (
-        <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onView}
+          className="flex-1 text-xs border-[#5d6d4e]/30 hover:bg-[#5d6d4e]/10"
+        >
+          <Eye className="w-3 h-3 mr-1" />
+          View
+        </Button>
+        {evidence.fileUrl && (
           <Button
             variant="outline"
             size="sm"
-            onClick={onView}
-            className="flex-1 text-xs border-[#5d6d4e]/30 hover:bg-[#5d6d4e]/10"
+            asChild
+            className="flex-1 text-xs border-[#c4a35a]/30 hover:bg-[#c4a35a]/10"
           >
-            <ZoomIn className="w-3 h-3 mr-1" />
-            View
+            <a href={evidence.fileUrl} download>
+              <Download className="w-3 h-3 mr-1" />
+              Download
+            </a>
           </Button>
-          {evidence.downloadable && (
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="flex-1 text-xs border-[#c4a35a]/30 hover:bg-[#c4a35a]/10"
-            >
-              <a href={evidence.imagePath} download>
-                <Download className="w-3 h-3 mr-1" />
-                Download
-              </a>
-            </Button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </motion.div>
   );
 }
 
-function TimelineEventCard({ event, index }: { event: TimelineEvent; index: number }) {
-  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null);
-  const colors = categoryColors[event.category] || categoryColors.foundation;
+function TimelineEventCard({ 
+  event, 
+  index, 
+  categoryStyles,
+  onViewEvidence 
+}: { 
+  event: TimelineEvent; 
+  index: number;
+  categoryStyles: Record<string, { label: string; color: string; bg: string; text: string; light: string }>;
+  onViewEvidence: (evidence: Evidence) => void;
+}) {
+  const [showEvidenceDialog, setShowEvidenceDialog] = useState(false);
+  
+  // Fetch linked evidence for this event
+  const { data: linkedEvidence } = trpc.public.getEventEvidence.useQuery(
+    { eventId: event.id },
+    { enabled: event.id > 0 }
+  );
+
+  const colors = categoryStyles[event.category] || defaultCategoryStyles.foundation;
   const isLeft = index % 2 === 0;
   const isCritical = event.category === 'critical_failure';
   
@@ -135,6 +159,8 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
       day: 'numeric' 
     });
   };
+
+  const hasEvidence = linkedEvidence && linkedEvidence.length > 0;
 
   return (
     <>
@@ -156,11 +182,13 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
               </div>
             )}
             
-            {/* Category Label */}
-            <div className={`inline-flex items-center gap-2 ${colors.text} text-xs font-medium mb-3`}>
-              <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
-              {categoryLabels[event.category] || event.category}
-            </div>
+            {/* Category Badge */}
+            <Badge 
+              className="mb-3 text-white"
+              style={{ backgroundColor: colors.color }}
+            >
+              {colors.label}
+            </Badge>
             
             {/* Date & Time */}
             <div className="flex items-center gap-4 text-sm text-[#3d3d3d]/60 mb-3">
@@ -185,27 +213,36 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
             </h3>
             
             {/* Description */}
-            <p className="text-[#3d3d3d]/70 text-sm leading-relaxed">
+            <p className="text-[#3d3d3d]/70 text-sm leading-relaxed mb-4">
               {event.description}
             </p>
-            
-            {/* Evidence Cards */}
-            {event.evidence && event.evidence.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <h4 className="text-xs font-semibold text-[#3d3d3d]/50 uppercase tracking-wider">
-                  Related Evidence
-                </h4>
-                <div className="grid gap-2">
-                  {event.evidence.map(ev => (
-                    <EvidenceCard
-                      key={ev.id}
-                      evidence={ev}
-                      onView={() => setSelectedEvidence(ev)}
-                    />
-                  ))}
-                </div>
+
+            {/* Tags */}
+            {event.tags && event.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {event.tags.map((tag, i) => (
+                  <span 
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full"
+                    style={{ backgroundColor: `${colors.color}20`, color: colors.color }}
+                  >
+                    <Tag className="w-3 h-3" />
+                    {tag}
+                  </span>
+                ))}
               </div>
             )}
+            
+            {/* View Evidence Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEvidenceDialog(true)}
+              className="border-[#5d6d4e]/30 text-[#5d6d4e] hover:bg-[#5d6d4e]/10"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              View Evidence {hasEvidence && `(${linkedEvidence.length})`}
+            </Button>
           </div>
         </motion.div>
 
@@ -215,7 +252,8 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
             viewport={{ once: true }}
-            className={`w-12 h-12 rounded-full ${colors.bg} flex items-center justify-center shadow-lg z-10`}
+            className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg z-10"
+            style={{ backgroundColor: colors.color }}
           >
             {isCritical ? (
               <XCircle className="w-5 h-5 text-white" />
@@ -229,37 +267,59 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
         <div className="hidden md:block flex-1 md:w-1/2" />
       </div>
 
-      {/* Evidence Modal */}
-      <Dialog open={!!selectedEvidence} onOpenChange={() => setSelectedEvidence(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      {/* Evidence Dialog */}
+      <Dialog open={showEvidenceDialog} onOpenChange={setShowEvidenceDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle style={{ fontFamily: 'var(--font-heading)' }}>
-              {selectedEvidence?.title}
+              {event.title} - Evidence
             </DialogTitle>
           </DialogHeader>
-          {selectedEvidence?.imagePath && (
-            <div className="mt-4">
-              <img
-                src={selectedEvidence.imagePath}
-                alt={selectedEvidence.title}
-                className="w-full rounded-lg border border-[#c4a35a]/30"
-              />
-              <p className="text-sm text-[#3d3d3d]/70 mt-4">
-                {selectedEvidence.description}
-              </p>
-              {selectedEvidence.downloadable && (
-                <Button
-                  asChild
-                  className="mt-4 bg-[#5d6d4e] hover:bg-[#5d6d4e]/90"
-                >
-                  <a href={selectedEvidence.imagePath} download>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Evidence
-                  </a>
-                </Button>
+          
+          <div className="space-y-4 mt-4">
+            {/* Event Details */}
+            <div className="p-4 bg-stone-50 rounded-lg">
+              <div className="flex items-center gap-3 mb-2 text-sm text-[#3d3d3d]/60">
+                <Calendar className="w-4 h-4" />
+                {formatDate(event.date)}
+                {event.time && (
+                  <>
+                    <Clock className="w-4 h-4 ml-2" />
+                    {event.time}
+                  </>
+                )}
+              </div>
+              <p className="text-[#3d3d3d]/80 text-sm">{event.description}</p>
+            </div>
+
+            {/* Linked Evidence */}
+            <div>
+              <h4 className="font-semibold text-[#3d3d3d] mb-3 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#5d6d4e]" />
+                Supporting Evidence
+              </h4>
+              
+              {hasEvidence ? (
+                <div className="grid gap-3">
+                  {linkedEvidence.map((evidence: any) => (
+                    <EvidenceCard
+                      key={evidence.id}
+                      evidence={evidence}
+                      onView={() => {
+                        setShowEvidenceDialog(false);
+                        onViewEvidence(evidence);
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-[#3d3d3d]/50 bg-stone-50 rounded-lg">
+                  <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p>No evidence linked to this event yet</p>
+                </div>
               )}
             </div>
-          )}
+          </div>
         </DialogContent>
       </Dialog>
     </>
@@ -269,12 +329,31 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
 export default function Timeline({ events }: TimelineProps) {
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterYear, setFilterYear] = useState<number | null>(null);
+  const [viewingEvidence, setViewingEvidence] = useState<Evidence | null>(null);
+
+  // Fetch dynamic categories
+  const { data: dynamicCategories } = trpc.public.getTimelineCategories.useQuery();
+
+  // Build category styles from dynamic categories or use defaults
+  const categoryStyles = dynamicCategories && dynamicCategories.length > 0
+    ? dynamicCategories.reduce((acc, cat) => {
+        acc[cat.key] = {
+          label: cat.label,
+          color: cat.color || '#5d6d4e',
+          bg: `bg-[${cat.color || '#5d6d4e'}]`,
+          text: `text-[${cat.color || '#5d6d4e'}]`,
+          light: `bg-[${cat.color || '#5d6d4e'}]/10`
+        };
+        return acc;
+      }, {} as Record<string, { label: string; color: string; bg: string; text: string; light: string }>)
+    : defaultCategoryStyles;
 
   if (!events || events.length === 0) {
     return null;
   }
 
   const years = Array.from(new Set(events.map(e => new Date(e.date).getFullYear()))).sort();
+  const categories = Object.keys(categoryStyles);
   
   const filteredEvents = events.filter(event => {
     if (filterCategory && event.category !== filterCategory) return false;
@@ -292,6 +371,9 @@ export default function Timeline({ events }: TimelineProps) {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
+          <span className="inline-block px-4 py-1.5 bg-[#5d6d4e]/10 text-[#5d6d4e] rounded-full text-sm font-medium mb-4">
+            Chronological Evidence
+          </span>
           <h2 
             className="text-3xl md:text-4xl font-bold text-[#3d3d3d] mb-4"
             style={{ fontFamily: 'var(--font-heading)' }}
@@ -300,14 +382,14 @@ export default function Timeline({ events }: TimelineProps) {
           </h2>
           <p className="text-[#3d3d3d]/70 max-w-2xl mx-auto">
             A chronological documentation of events from project inception to deal collapse,
-            with all supporting evidence.
+            with all supporting evidence available for view and download.
           </p>
         </motion.div>
 
         {/* Filters */}
         <div className="flex flex-wrap justify-center gap-4 mb-12">
           {/* Year Filter */}
-          <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-[#c4a35a]/20">
+          <div className="flex flex-wrap items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-[#c4a35a]/20">
             <button
               onClick={() => setFilterYear(null)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
@@ -345,20 +427,28 @@ export default function Timeline({ events }: TimelineProps) {
             >
               All Categories
             </button>
-            {Object.entries(categoryLabels).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setFilterCategory(key)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  filterCategory === key
-                    ? 'bg-[#5d6d4e] text-white'
-                    : 'text-[#3d3d3d] hover:bg-[#5d6d4e]/10'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            {categories.map(cat => {
+              const style = categoryStyles[cat];
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setFilterCategory(cat)}
+                  className="px-4 py-2 rounded-md text-sm font-medium transition-all"
+                  style={filterCategory === cat 
+                    ? { backgroundColor: style.color, color: 'white' } 
+                    : { color: '#3d3d3d' }
+                  }
+                >
+                  {style.label}
+                </button>
+              );
+            })}
           </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="text-center mb-8 text-sm text-[#3d3d3d]/60">
+          Showing {filteredEvents.length} of {events.length} events
         </div>
 
         {/* Timeline */}
@@ -369,7 +459,13 @@ export default function Timeline({ events }: TimelineProps) {
           {/* Events */}
           <div className="space-y-12">
             {filteredEvents.map((event, index) => (
-              <TimelineEventCard key={event.id} event={event} index={index} />
+              <TimelineEventCard 
+                key={event.id} 
+                event={event} 
+                index={index}
+                categoryStyles={categoryStyles}
+                onViewEvidence={setViewingEvidence}
+              />
             ))}
           </div>
         </div>
@@ -377,10 +473,57 @@ export default function Timeline({ events }: TimelineProps) {
         {/* Empty State */}
         {filteredEvents.length === 0 && (
           <div className="text-center py-12">
+            <FileText className="w-12 h-12 mx-auto text-[#c4a35a]/50 mb-4" />
             <p className="text-[#3d3d3d]/60">No events found for the selected filters.</p>
+            <Button
+              variant="outline"
+              onClick={() => { setFilterYear(null); setFilterCategory(null); }}
+              className="mt-4"
+            >
+              Clear Filters
+            </Button>
           </div>
         )}
       </div>
+
+      {/* Evidence Viewer Dialog */}
+      <Dialog open={!!viewingEvidence} onOpenChange={() => setViewingEvidence(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewingEvidence?.title}</DialogTitle>
+          </DialogHeader>
+          {viewingEvidence && (
+            <div className="space-y-4">
+              {viewingEvidence.thumbnailUrl && (
+                <img 
+                  src={viewingEvidence.thumbnailUrl} 
+                  alt={viewingEvidence.title}
+                  className="w-full rounded-lg border border-[#c4a35a]/30"
+                />
+              )}
+              {viewingEvidence.description && (
+                <p className="text-[#3d3d3d]/70">{viewingEvidence.description}</p>
+              )}
+              {viewingEvidence.fileUrl && (
+                <div className="flex gap-2">
+                  <a href={viewingEvidence.fileUrl} target="_blank" rel="noopener noreferrer">
+                    <Button className="bg-[#5d6d4e] hover:bg-[#5d6d4e]/90">
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Full Size
+                    </Button>
+                  </a>
+                  <a href={viewingEvidence.fileUrl} download>
+                    <Button variant="outline">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

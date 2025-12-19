@@ -74,13 +74,13 @@ export default function Home() {
   } : null;
 
   const transformedTimeline = timelineData?.map(event => ({
-    id: event.id.toString(),
+    id: event.id,
     date: event.date,
     time: event.time || undefined,
     title: event.title,
     description: event.description || '',
     category: event.category,
-    evidence: [],
+    tags: (event as any).tags ? (typeof (event as any).tags === 'string' ? JSON.parse((event as any).tags) : (event as any).tags) : [],
   })) || [];
 
   const transformedEvidence = evidenceData?.map(item => ({

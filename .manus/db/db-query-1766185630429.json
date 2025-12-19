@@ -1,0 +1,16 @@
+{
+  "query": "SHOW TABLES LIKE '%event%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute SHOW TABLES LIKE '%event%';",
+  "rows": [
+    {
+      "Tables_in_3tVGAZfx4bapBwcWq8VJfC (%event%)": "timeline_event_evidence"
+    },
+    {
+      "Tables_in_3tVGAZfx4bapBwcWq8VJfC (%event%)": "timeline_events"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3tVGAZfx4bapBwcWq8VJfC (%event%)\ntimeline_event_evidence\ntimeline_events\n",
+  "stderr": "",
+  "execution_time_ms": 1588
+}

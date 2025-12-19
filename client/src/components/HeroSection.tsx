@@ -1,11 +1,32 @@
 import { motion } from 'framer-motion';
 import { ChevronDown, FileWarning, Calendar, DollarSign } from 'lucide-react';
-import { caseInfo } from '@/data/caseData';
 
 // Hero Section - Olive Branch Justice Theme
 // Features: Logo prominence, case summary, key statistics
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  title: string;
+  titleHighlight: string;
+  subtitle: string;
+  description: string;
+  guaranteeRef: string;
+  dealValue: string;
+  criticalPeriod: string;
+  ctaText: string;
+  ctaLink: string;
+}
+
+export default function HeroSection({
+  title,
+  titleHighlight,
+  subtitle,
+  description,
+  guaranteeRef,
+  dealValue,
+  criticalPeriod,
+  ctaText,
+  ctaLink,
+}: HeroSectionProps) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#fdfcfa] via-[#f5f2eb] to-[#fdfcfa]">
       {/* Decorative Background Elements */}
@@ -64,14 +85,14 @@ export default function HeroSection() {
               className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#3d3d3d] mb-4"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
-              Bank Guarantee
-              <span className="block text-[#5d6d4e]">Dispute Case</span>
+              {title}
+              <span className="block text-[#5d6d4e]">{titleHighlight}</span>
             </h1>
             <p className="text-lg md:text-xl text-[#3d3d3d]/70 mb-2">
-              {caseInfo.projectName} Project
+              {subtitle}
             </p>
             <p className="text-sm text-[#722f37] font-medium">
-              Nesma Barzan vs. Al Rajhi Bank
+              {description}
             </p>
           </motion.div>
 
@@ -94,7 +115,7 @@ export default function HeroSection() {
               <FileWarning className="w-8 h-8 text-[#722f37] mx-auto mb-3" />
               <p className="text-sm text-[#3d3d3d]/60 mb-1">Guarantee Reference</p>
               <p className="text-xs font-mono text-[#5d6d4e] break-all">
-                {caseInfo.guaranteeNumber}
+                {guaranteeRef}
               </p>
             </div>
             
@@ -102,7 +123,7 @@ export default function HeroSection() {
               <DollarSign className="w-8 h-8 text-[#5d6d4e] mx-auto mb-3" />
               <p className="text-sm text-[#3d3d3d]/60 mb-1">Deal Value Lost</p>
               <p className="text-2xl font-bold text-[#722f37]">
-                €120M
+                {dealValue}
               </p>
             </div>
             
@@ -110,7 +131,7 @@ export default function HeroSection() {
               <Calendar className="w-8 h-8 text-[#c4a35a] mx-auto mb-3" />
               <p className="text-sm text-[#3d3d3d]/60 mb-1">Critical Period</p>
               <p className="text-lg font-semibold text-[#3d3d3d]">
-                Oct - Nov 2013
+                {criticalPeriod}
               </p>
             </div>
           </motion.div>
@@ -129,13 +150,13 @@ export default function HeroSection() {
 
           {/* Scroll Indicator */}
           <motion.a
-            href="#overview"
+            href={ctaLink || '#overview'}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 1 }}
             className="inline-flex flex-col items-center mt-12 text-[#5d6d4e] hover:text-[#722f37] transition-colors"
           >
-            <span className="text-sm mb-2">Explore the Case</span>
+            <span className="text-sm mb-2">{ctaText || 'Explore the Case'}</span>
             <motion.div
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 1.5, repeat: Infinity }}

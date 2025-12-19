@@ -5,16 +5,36 @@ import { Menu, X, FileText, Clock, Video, Scale } from 'lucide-react';
 // Header Component - Olive Branch Justice Theme
 // Features: Logo, navigation, mobile menu, scroll effects
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+}
+
+interface HeaderProps {
+  logoUrl: string;
+  siteName: string;
+  siteSubtitle: string;
+  navItems: NavItem[];
+}
+
+const defaultNavItems = [
   { label: 'Overview', href: '#overview', icon: FileText },
   { label: 'Timeline', href: '#timeline', icon: Clock },
   { label: 'Evidence', href: '#evidence', icon: Scale },
   { label: 'Videos', href: '#videos', icon: Video },
 ];
 
-export default function Header() {
+export default function Header({ logoUrl, siteName, siteSubtitle, navItems }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Merge custom nav items with default icons
+  const mergedNavItems = navItems && navItems.length > 0 
+    ? navItems.map((item, index) => ({
+        ...item,
+        icon: defaultNavItems[index]?.icon || FileText
+      }))
+    : defaultNavItems;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,8 +57,8 @@ export default function Header() {
           {/* Logo */}
           <a href="#" className="flex items-center gap-3 group">
             <motion.img
-              src="/images/logo.png"
-              alt="Nesma Barzan"
+              src={logoUrl || '/images/logo.png'}
+              alt={siteName || 'Nesma Barzan'}
               className="h-14 w-auto"
               whileHover={{ scale: 1.05 }}
               transition={{ type: 'spring', stiffness: 300 }}
@@ -50,21 +70,21 @@ export default function Header() {
                 }`}
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
-                SHHEER Case
+                {siteName || 'SHHEER Case'}
               </h1>
               <p 
                 className={`text-xs transition-colors ${
                   isScrolled ? 'text-[#3d3d3d]/70' : 'text-[#3d3d3d]/70'
                 }`}
               >
-                Bank Guarantee Dispute
+                {siteSubtitle || 'Bank Guarantee Dispute'}
               </p>
             </div>
           </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
+            {mergedNavItems.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
@@ -103,7 +123,7 @@ export default function Header() {
             className="md:hidden bg-white border-t border-[#c4a35a]/20"
           >
             <nav className="container py-4 flex flex-col gap-2">
-              {navItems.map((item) => (
+              {mergedNavItems.map((item) => (
                 <a
                   key={item.label}
                   href={item.href}

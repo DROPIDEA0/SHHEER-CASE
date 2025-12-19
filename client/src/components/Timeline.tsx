@@ -13,30 +13,52 @@ import {
   MessageSquare,
   Zap
 } from 'lucide-react';
-import { timelineEvents, whatsappEvidence, type TimelineEvent, type Evidence } from '@/data/caseData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
 // Timeline Component - Olive Branch Justice Theme
 // Features: Chronological events, evidence cards, download functionality
 
-const categoryColors = {
+interface TimelineEvent {
+  id: string;
+  date: string;
+  time?: string;
+  title: string;
+  description: string;
+  category: 'foundation' | 'investment_deal' | 'swift_operations' | 'critical_failure' | 'legal_proceedings';
+  evidence?: Evidence[];
+}
+
+interface Evidence {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  imagePath?: string;
+  downloadable?: boolean;
+}
+
+interface TimelineProps {
+  events: TimelineEvent[];
+}
+
+const categoryColors: Record<string, { bg: string; text: string; light: string }> = {
   foundation: { bg: 'bg-[#5d6d4e]', text: 'text-[#5d6d4e]', light: 'bg-[#5d6d4e]/10' },
-  deal: { bg: 'bg-[#c4a35a]', text: 'text-[#c4a35a]', light: 'bg-[#c4a35a]/10' },
-  swift: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-50' },
-  failure: { bg: 'bg-[#722f37]', text: 'text-[#722f37]', light: 'bg-[#722f37]/10' },
-  legal: { bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-50' },
+  investment_deal: { bg: 'bg-[#c4a35a]', text: 'text-[#c4a35a]', light: 'bg-[#c4a35a]/10' },
+  swift_operations: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-50' },
+  critical_failure: { bg: 'bg-[#722f37]', text: 'text-[#722f37]', light: 'bg-[#722f37]/10' },
+  legal_proceedings: { bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-50' },
 };
 
-const categoryLabels = {
+const categoryLabels: Record<string, string> = {
   foundation: 'Foundation',
-  deal: 'Investment Deal',
-  swift: 'SWIFT Operations',
-  failure: 'Critical Failure',
-  legal: 'Legal Proceedings',
+  investment_deal: 'Investment Deal',
+  swift_operations: 'SWIFT Operations',
+  critical_failure: 'Critical Failure',
+  legal_proceedings: 'Legal Proceedings',
 };
 
-const evidenceIcons = {
+const evidenceIcons: Record<string, typeof Mail> = {
   email: Mail,
   document: FileText,
   whatsapp: MessageSquare,
@@ -101,8 +123,9 @@ function EvidenceCard({ evidence, onView }: { evidence: Evidence; onView: () => 
 
 function TimelineEventCard({ event, index }: { event: TimelineEvent; index: number }) {
   const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null);
-  const colors = categoryColors[event.category];
+  const colors = categoryColors[event.category] || categoryColors.foundation;
   const isLeft = index % 2 === 0;
+  const isCritical = event.category === 'critical_failure';
   
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -126,7 +149,7 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
         >
           <div className={`${colors.light} rounded-xl p-6 border border-[#c4a35a]/20 relative`}>
             {/* Critical Badge */}
-            {event.critical && (
+            {isCritical && (
               <div className="absolute -top-3 -right-3 bg-[#722f37] text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
                 <AlertTriangle className="w-3 h-3" />
                 Critical
@@ -136,7 +159,7 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
             {/* Category Label */}
             <div className={`inline-flex items-center gap-2 ${colors.text} text-xs font-medium mb-3`}>
               <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
-              {categoryLabels[event.category]}
+              {categoryLabels[event.category] || event.category}
             </div>
             
             {/* Date & Time */}
@@ -155,25 +178,25 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
             
             {/* Title */}
             <h3 
-              className="text-xl font-bold text-[#3d3d3d] mb-3"
+              className="text-lg font-bold text-[#3d3d3d] mb-2"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
               {event.title}
             </h3>
             
             {/* Description */}
-            <p className="text-sm text-[#3d3d3d]/80 leading-relaxed mb-4">
+            <p className="text-[#3d3d3d]/70 text-sm leading-relaxed">
               {event.description}
             </p>
             
-            {/* Evidence */}
-            {event.evidence.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-xs font-semibold text-[#5d6d4e] uppercase tracking-wider">
-                  Evidence ({event.evidence.length})
+            {/* Evidence Cards */}
+            {event.evidence && event.evidence.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-xs font-semibold text-[#3d3d3d]/50 uppercase tracking-wider">
+                  Related Evidence
                 </h4>
-                <div className="grid gap-3">
-                  {event.evidence.map((ev) => (
+                <div className="grid gap-2">
+                  {event.evidence.map(ev => (
                     <EvidenceCard
                       key={ev.id}
                       evidence={ev}
@@ -192,13 +215,12 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
             viewport={{ once: true }}
-            transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
-            className={`w-6 h-6 rounded-full ${colors.bg} shadow-lg flex items-center justify-center`}
+            className={`w-12 h-12 rounded-full ${colors.bg} flex items-center justify-center shadow-lg z-10`}
           >
-            {event.critical ? (
-              <XCircle className="w-4 h-4 text-white" />
+            {isCritical ? (
+              <XCircle className="w-5 h-5 text-white" />
             ) : (
-              <CheckCircle className="w-4 h-4 text-white" />
+              <CheckCircle className="w-5 h-5 text-white" />
             )}
           </motion.div>
         </div>
@@ -244,13 +266,17 @@ function TimelineEventCard({ event, index }: { event: TimelineEvent; index: numb
   );
 }
 
-export default function Timeline() {
+export default function Timeline({ events }: TimelineProps) {
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterYear, setFilterYear] = useState<number | null>(null);
 
-  const years = Array.from(new Set(timelineEvents.map(e => new Date(e.date).getFullYear()))).sort();
+  if (!events || events.length === 0) {
+    return null;
+  }
+
+  const years = Array.from(new Set(events.map(e => new Date(e.date).getFullYear()))).sort();
   
-  const filteredEvents = timelineEvents.filter(event => {
+  const filteredEvents = events.filter(event => {
     if (filterCategory && event.category !== filterCategory) return false;
     if (filterYear && new Date(event.date).getFullYear() !== filterYear) return false;
     return true;
@@ -308,7 +334,7 @@ export default function Timeline() {
           </div>
 
           {/* Category Filter */}
-          <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-[#c4a35a]/20">
+          <div className="flex flex-wrap items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-[#c4a35a]/20">
             <button
               onClick={() => setFilterCategory(null)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
@@ -317,7 +343,7 @@ export default function Timeline() {
                   : 'text-[#3d3d3d] hover:bg-[#5d6d4e]/10'
               }`}
             >
-              All
+              All Categories
             </button>
             {Object.entries(categoryLabels).map(([key, label]) => (
               <button
@@ -325,7 +351,7 @@ export default function Timeline() {
                 onClick={() => setFilterCategory(key)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                   filterCategory === key
-                    ? `${categoryColors[key as keyof typeof categoryColors].bg} text-white`
+                    ? 'bg-[#5d6d4e] text-white'
                     : 'text-[#3d3d3d] hover:bg-[#5d6d4e]/10'
                 }`}
               >
@@ -337,9 +363,9 @@ export default function Timeline() {
 
         {/* Timeline */}
         <div className="relative">
-          {/* Central Line */}
-          <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#5d6d4e] via-[#c4a35a] to-[#5d6d4e] transform -translate-x-1/2" />
-
+          {/* Center Line */}
+          <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#5d6d4e] via-[#c4a35a] to-[#722f37]" />
+          
           {/* Events */}
           <div className="space-y-12">
             {filteredEvents.map((event, index) => (
@@ -348,63 +374,11 @@ export default function Timeline() {
           </div>
         </div>
 
-        {/* WhatsApp Evidence Section */}
-        {(!filterCategory || filterCategory === 'failure') && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-16"
-          >
-            <h3 
-              className="text-2xl font-bold text-[#3d3d3d] mb-6 text-center"
-              style={{ fontFamily: 'var(--font-heading)' }}
-            >
-              WhatsApp Communications
-            </h3>
-            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {whatsappEvidence.map((evidence) => (
-                <div
-                  key={evidence.id}
-                  className="bg-white rounded-xl p-6 border border-[#c4a35a]/30 shadow-lg"
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-green-100">
-                      <MessageSquare className="w-5 h-5 text-green-600" />
-                    </div>
-                    <h4 className="font-semibold text-[#3d3d3d]">{evidence.title}</h4>
-                  </div>
-                  <p className="text-sm text-[#3d3d3d]/70 mb-4">{evidence.description}</p>
-                  {evidence.imagePath && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="flex-1 border-[#5d6d4e]/30"
-                      >
-                        <a href={evidence.imagePath} target="_blank" rel="noopener noreferrer">
-                          <ZoomIn className="w-4 h-4 mr-2" />
-                          View
-                        </a>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="flex-1 border-[#c4a35a]/30"
-                      >
-                        <a href={evidence.imagePath} download>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </a>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </motion.div>
+        {/* Empty State */}
+        {filteredEvents.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-[#3d3d3d]/60">No events found for the selected filters.</p>
+          </div>
         )}
       </div>
     </section>

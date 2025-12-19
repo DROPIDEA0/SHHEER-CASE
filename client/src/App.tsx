@@ -6,11 +6,35 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 
+// Admin Pages
+import Dashboard from "./pages/admin/Dashboard";
+import HeaderAdmin from "./pages/admin/HeaderAdmin";
+import HeroAdmin from "./pages/admin/HeroAdmin";
+import TimelineAdmin from "./pages/admin/TimelineAdmin";
+import EvidenceAdmin from "./pages/admin/EvidenceAdmin";
+import VideosAdmin from "./pages/admin/VideosAdmin";
+import PartiesAdmin from "./pages/admin/PartiesAdmin";
+import FooterAdmin from "./pages/admin/FooterAdmin";
+import SettingsAdmin from "./pages/admin/SettingsAdmin";
 
 function Router() {
   return (
     <Switch>
+      {/* Public Routes */}
       <Route path={"/"} component={Home} />
+      
+      {/* Admin Routes */}
+      <Route path={"/admin"} component={Dashboard} />
+      <Route path={"/admin/dashboard"} component={Dashboard} />
+      <Route path={"/admin/header"} component={HeaderAdmin} />
+      <Route path={"/admin/hero"} component={HeroAdmin} />
+      <Route path={"/admin/timeline"} component={TimelineAdmin} />
+      <Route path={"/admin/evidence"} component={EvidenceAdmin} />
+      <Route path={"/admin/videos"} component={VideosAdmin} />
+      <Route path={"/admin/parties"} component={PartiesAdmin} />
+      <Route path={"/admin/footer"} component={FooterAdmin} />
+      <Route path={"/admin/settings"} component={SettingsAdmin} />
+      
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -18,17 +42,11 @@ function Router() {
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
-        // switchable
       >
         <TooltipProvider>
           <Toaster />

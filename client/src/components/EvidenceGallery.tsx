@@ -10,41 +10,58 @@ import {
   MessageSquare,
   Zap,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ScrollText,
+  Award
 } from 'lucide-react';
-import { getAllEvidence, type Evidence } from '@/data/caseData';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 // Evidence Gallery - Olive Branch Justice Theme
 // Features: Filterable gallery, lightbox view, download all
 
+interface EvidenceItem {
+  id: string;
+  title: string;
+  description: string;
+  category: 'licenses' | 'letters' | 'swift' | 'documents' | 'emails' | 'whatsapp';
+  fileUrl: string;
+  thumbnailUrl?: string;
+  fileName?: string;
+}
+
+interface EvidenceGalleryProps {
+  evidence: EvidenceItem[];
+}
+
 const evidenceTypeLabels = {
-  email: { label: 'Emails', icon: Mail, color: 'bg-blue-500' },
-  document: { label: 'Documents', icon: FileText, color: 'bg-[#5d6d4e]' },
+  emails: { label: 'Emails', icon: Mail, color: 'bg-blue-500' },
+  documents: { label: 'Documents', icon: FileText, color: 'bg-[#5d6d4e]' },
   whatsapp: { label: 'WhatsApp', icon: MessageSquare, color: 'bg-green-500' },
   swift: { label: 'SWIFT', icon: Zap, color: 'bg-purple-500' },
-  letter: { label: 'Letters', icon: FileText, color: 'bg-[#c4a35a]' },
-  license: { label: 'Licenses', icon: FileText, color: 'bg-[#722f37]' },
+  letters: { label: 'Letters', icon: ScrollText, color: 'bg-[#c4a35a]' },
+  licenses: { label: 'Licenses', icon: Award, color: 'bg-[#722f37]' },
 };
 
-export default function EvidenceGallery() {
+export default function EvidenceGallery({ evidence }: EvidenceGalleryProps) {
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null);
+  const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  const allEvidence = getAllEvidence();
+  if (!evidence || evidence.length === 0) {
+    return null;
+  }
   
   const filteredEvidence = selectedType
-    ? allEvidence.filter(e => e.type === selectedType)
-    : allEvidence;
+    ? evidence.filter(e => e.category === selectedType)
+    : evidence;
 
-  const evidenceTypes = Array.from(new Set(allEvidence.map(e => e.type)));
+  const evidenceTypes = Array.from(new Set(evidence.map(e => e.category)));
 
-  const openLightbox = (evidence: Evidence) => {
-    const index = filteredEvidence.findIndex(e => e.id === evidence.id);
+  const openLightbox = (item: EvidenceItem) => {
+    const index = filteredEvidence.findIndex(e => e.id === item.id);
     setCurrentIndex(index);
-    setSelectedEvidence(evidence);
+    setSelectedEvidence(item);
   };
 
   const navigateLightbox = (direction: 'prev' | 'next') => {
@@ -86,11 +103,11 @@ export default function EvidenceGallery() {
           className="flex flex-wrap justify-center gap-4 mb-8"
         >
           <div className="bg-white rounded-lg px-6 py-3 shadow-sm border border-[#c4a35a]/20">
-            <span className="text-2xl font-bold text-[#5d6d4e]">{allEvidence.length}</span>
+            <span className="text-2xl font-bold text-[#5d6d4e]">{evidence.length}</span>
             <span className="text-sm text-[#3d3d3d]/60 ml-2">Total Items</span>
           </div>
           {evidenceTypes.map(type => {
-            const count = allEvidence.filter(e => e.type === type).length;
+            const count = evidence.filter(e => e.category === type).length;
             const typeInfo = evidenceTypeLabels[type as keyof typeof evidenceTypeLabels];
             return (
               <div key={type} className="bg-white rounded-lg px-4 py-3 shadow-sm border border-[#c4a35a]/20 flex items-center gap-2">
@@ -134,13 +151,13 @@ export default function EvidenceGallery() {
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
         >
           <AnimatePresence mode="popLayout">
-            {filteredEvidence.map((evidence) => {
-              const typeInfo = evidenceTypeLabels[evidence.type as keyof typeof evidenceTypeLabels];
+            {filteredEvidence.map((item) => {
+              const typeInfo = evidenceTypeLabels[item.category as keyof typeof evidenceTypeLabels];
               const Icon = typeInfo?.icon || FileText;
               
               return (
                 <motion.div
-                  key={evidence.id}
+                  key={item.id}
                   layout
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -149,11 +166,11 @@ export default function EvidenceGallery() {
                   className="group relative bg-white rounded-xl overflow-hidden border border-[#c4a35a]/20 shadow-sm hover:shadow-lg transition-all"
                 >
                   {/* Image Preview */}
-                  {evidence.imagePath ? (
+                  {item.fileUrl ? (
                     <div className="aspect-[4/3] overflow-hidden bg-[#f5f2eb]">
                       <img
-                        src={evidence.imagePath}
-                        alt={evidence.title}
+                        src={item.thumbnailUrl || item.fileUrl}
+                        alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                       />
@@ -167,7 +184,7 @@ export default function EvidenceGallery() {
                   {/* Type Badge */}
                   <div className={`absolute top-2 left-2 ${typeInfo?.color || 'bg-gray-500'} text-white text-xs px-2 py-1 rounded-full flex items-center gap-1`}>
                     <Icon className="w-3 h-3" />
-                    {typeInfo?.label || evidence.type}
+                    {typeInfo?.label || item.category}
                   </div>
                   
                   {/* Overlay Actions */}
@@ -175,19 +192,19 @@ export default function EvidenceGallery() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => openLightbox(evidence)}
+                      onClick={() => openLightbox(item)}
                       className="bg-white hover:bg-white/90"
                     >
                       <ZoomIn className="w-4 h-4" />
                     </Button>
-                    {evidence.downloadable && evidence.imagePath && (
+                    {item.fileUrl && (
                       <Button
                         size="sm"
                         variant="secondary"
                         asChild
                         className="bg-white hover:bg-white/90"
                       >
-                        <a href={evidence.imagePath} download>
+                        <a href={item.fileUrl} download>
                           <Download className="w-4 h-4" />
                         </a>
                       </Button>
@@ -197,10 +214,10 @@ export default function EvidenceGallery() {
                   {/* Info */}
                   <div className="p-3">
                     <h4 className="text-sm font-semibold text-[#3d3d3d] line-clamp-1">
-                      {evidence.title}
+                      {item.title}
                     </h4>
                     <p className="text-xs text-[#3d3d3d]/60 line-clamp-2 mt-1">
-                      {evidence.description}
+                      {item.description}
                     </p>
                   </div>
                 </motion.div>
@@ -236,9 +253,9 @@ export default function EvidenceGallery() {
               </button>
               
               {/* Image */}
-              {selectedEvidence?.imagePath && (
+              {selectedEvidence?.fileUrl && (
                 <img
-                  src={selectedEvidence.imagePath}
+                  src={selectedEvidence.fileUrl}
                   alt={selectedEvidence.title}
                   className="w-full max-h-[80vh] object-contain"
                 />
@@ -250,9 +267,9 @@ export default function EvidenceGallery() {
                   <h3 className="text-white font-semibold">{selectedEvidence?.title}</h3>
                   <p className="text-white/60 text-sm">{selectedEvidence?.description}</p>
                 </div>
-                {selectedEvidence?.downloadable && selectedEvidence?.imagePath && (
+                {selectedEvidence?.fileUrl && (
                   <Button asChild className="bg-[#5d6d4e] hover:bg-[#5d6d4e]/90">
-                    <a href={selectedEvidence.imagePath} download>
+                    <a href={selectedEvidence.fileUrl} download>
                       <Download className="w-4 h-4 mr-2" />
                       Download
                     </a>

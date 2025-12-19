@@ -49,3 +49,11 @@
 - [x] Test all admin CRUD operations
 - [x] Test public site data fetching
 - [x] Save final checkpoint
+
+
+## Bug Fixes & Improvements
+- [x] Fix View and Download buttons in Evidence Gallery
+- [x] Show file URLs in Evidence admin page
+- [x] Show file URLs in Videos admin page
+- [x] Ensure evidence items display correctly on public site
+- [x] Update evidence URLs in database

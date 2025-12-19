@@ -380,8 +380,25 @@ export default function EvidenceAdmin() {
                       {item.description && (
                         <p className="text-sm text-stone-500 line-clamp-2 mt-1">{item.description}</p>
                       )}
+                      {/* File URL Display */}
+                      {item.fileUrl && (
+                        <div className="mt-2 p-2 bg-stone-50 rounded text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-stone-500">URL:</span>
+                            <a 
+                              href={item.fileUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 hover:underline truncate flex-1"
+                            >
+                              {item.fileUrl}
+                            </a>
+                            <ExternalLink className="h-3 w-3 text-blue-600 flex-shrink-0" />
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between mt-3">
-                        <span className="text-xs text-stone-400">{item.fileName || 'No file'}</span>
+                        <span className="text-xs text-stone-400">{item.fileName || (item.fileUrl ? 'Has file URL' : 'No file')}</span>
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"

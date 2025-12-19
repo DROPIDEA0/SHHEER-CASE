@@ -1,0 +1,55 @@
+{
+  "query": "SELECT * FROM evidence_items LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute SELECT * FROM evidence_items LIMIT 3;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "SHHEER Project License",
+      "description": "Official license document from 2005",
+      "evidenceCategory": "licenses",
+      "fileUrl": "/evidence/license_2005.webp",
+      "fileName": "NULL",
+      "fileType": "NULL",
+      "thumbnailUrl": "/evidence/license_2005.webp",
+      "eventId": "NULL",
+      "displayOrder": "1",
+      "isActive": "1",
+      "createdAt": "2025-12-19 22:29:40",
+      "updatedAt": "2025-12-19 22:29:40"
+    },
+    {
+      "id": "2",
+      "title": "RMA Activation Email",
+      "description": "Email confirming RMA activation between banks",
+      "evidenceCategory": "emails",
+      "fileUrl": "/evidence/email_2_rma_confirmation.webp",
+      "fileName": "NULL",
+      "fileType": "NULL",
+      "thumbnailUrl": "/evidence/email_2_rma_confirmation.webp",
+      "eventId": "NULL",
+      "displayOrder": "2",
+      "isActive": "1",
+      "createdAt": "2025-12-19 22:29:40",
+      "updatedAt": "2025-12-19 22:29:40"
+    },
+    {
+      "id": "3",
+      "title": "RMA Active Confirmation",
+      "description": "SWIFT confirmation of active RMA status",
+      "evidenceCategory": "emails",
+      "fileUrl": "/evidence/email_3_rma_active.webp",
+      "fileName": "NULL",
+      "fileType": "NULL",
+      "thumbnailUrl": "/evidence/email_3_rma_active.webp",
+      "eventId": "NULL",
+      "displayOrder": "3",
+      "isActive": "1",
+      "createdAt": "2025-12-19 22:29:40",
+      "updatedAt": "2025-12-19 22:29:40"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tdescription\tevidenceCategory\tfileUrl\tfileName\tfileType\tthumbnailUrl\teventId\tdisplayOrder\tisActive\tcreatedAt\tupdatedAt\n1\tSHHEER Project License\tOfficial license document from 2005\tlicenses\t/evidence/license_2005.webp\tNULL\tNULL\t/evidence/license_2005.webp\tNULL\t1\t1\t2025-12-19 22:29:40\t2025-12-19 22:29:40\n2\tRMA Activation Email\tEmail confirming RMA activation between banks\temails\t/evidence/email_2_rma_confirmation.webp\tNULL\tNULL\t/evidence/email_2_rma_confirmation.webp\tNULL\t2\t1\t2025-12-19 22:29:40\t2025-12-19 22:29:40\n3\tRMA Active Confirmation\tSWIFT confirmation of active RMA status\temails\t/evidence/email_3_rma_active.webp\tNULL\tNULL\t/evidence/email_3_rma_active.webp\tNULL\t3\t1\t2025-12-19 22:29:40\t2025-12-19 22:29:40\n",
+  "stderr": "",
+  "execution_time_ms": 1545
+}

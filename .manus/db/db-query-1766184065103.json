@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, title, evidenceCategory, fileUrl, thumbnailUrl FROM evidence_items LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute SELECT id, title, evidenceCategory, fileUrl, thumbnailUrl FROM evidence_items LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "SHHEER Project License",
+      "evidenceCategory": "licenses",
+      "fileUrl": "/evidence/license_2005.webp",
+      "thumbnailUrl": "/evidence/license_2005.webp"
+    },
+    {
+      "id": "2",
+      "title": "RMA Activation Email",
+      "evidenceCategory": "emails",
+      "fileUrl": "/evidence/email_2_rma_confirmation.webp",
+      "thumbnailUrl": "/evidence/email_2_rma_confirmation.webp"
+    },
+    {
+      "id": "3",
+      "title": "RMA Active Confirmation",
+      "evidenceCategory": "emails",
+      "fileUrl": "/evidence/email_3_rma_active.webp",
+      "thumbnailUrl": "/evidence/email_3_rma_active.webp"
+    },
+    {
+      "id": "4",
+      "title": "MT 760 Bank Guarantee",
+      "evidenceCategory": "swift",
+      "fileUrl": "/evidence/swift_mt760.webp",
+      "thumbnailUrl": "/evidence/swift_mt760.webp"
+    },
+    {
+      "id": "5",
+      "title": "PKI AUTH FAILED Screenshot",
+      "evidenceCategory": "swift",
+      "fileUrl": "/evidence/pki_auth_failed.webp",
+      "thumbnailUrl": "/evidence/pki_auth_failed.webp"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tevidenceCategory\tfileUrl\tthumbnailUrl\n1\tSHHEER Project License\tlicenses\t/evidence/license_2005.webp\t/evidence/license_2005.webp\n2\tRMA Activation Email\temails\t/evidence/email_2_rma_confirmation.webp\t/evidence/email_2_rma_confirmation.webp\n3\tRMA Active Confirmation\temails\t/evidence/email_3_rma_active.webp\t/evidence/email_3_rma_active.webp\n4\tMT 760 Bank Guarantee\tswift\t/evidence/swift_mt760.webp\t/evidence/swift_mt760.webp\n5\tPKI AUTH FAILED Screenshot\tswift\t/evidence/pki_auth_failed.webp\t/evidence/pki_auth_failed.webp\n",
+  "stderr": "",
+  "execution_time_ms": 1618
+}

@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Video, Play } from 'lucide-react';
+import { Plus, Pencil, Trash2, Video, Play, ExternalLink, Copy } from 'lucide-react';
 
 interface VideoItem {
   id: number;
@@ -259,14 +259,45 @@ export default function VideosAdmin() {
                       {video.description && (
                         <p className="text-sm text-stone-500 line-clamp-2 mt-1">{video.description}</p>
                       )}
+                      {/* Video URL Display */}
+                      <div className="mt-3 p-2 bg-stone-50 rounded text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-stone-500 flex-shrink-0">URL:</span>
+                          <a 
+                            href={video.videoUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-blue-600 hover:underline truncate flex-1"
+                          >
+                            {video.videoUrl}
+                          </a>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(video.videoUrl);
+                              toast.success('URL copied!');
+                            }}
+                            className="text-stone-400 hover:text-stone-600 flex-shrink-0"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                          <a 
+                            href={video.videoUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 flex-shrink-0"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      </div>
                       <div className="flex items-center justify-between mt-4">
                         <a 
                           href={video.videoUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                         >
-                          View Video
+                          <Play className="h-3 w-3" /> Watch Video
                         </a>
                         <div className="flex gap-1">
                           <Button

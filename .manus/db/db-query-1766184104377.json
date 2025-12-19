@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE evidence_items SET fileUrl = '/evidence/shheer_license.webp' WHERE id = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3Lbzi2gXcQCjuDz.root --database 3tVGAZfx4bapBwcWq8VJfC --execute UPDATE evidence_items SET fileUrl = '/evidence/shheer_license.webp' WHERE id = 1;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1537
+}

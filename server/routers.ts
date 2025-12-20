@@ -30,27 +30,19 @@ export const appRouter = router({
   // ============ DEBUG API ============
   debug: router({
     checkDb: publicProcedure.query(async () => {
-      const dbUrl = process.env.DATABASE_URL;
-      const hasDbUrl = !!dbUrl;
-      const maskedUrl = dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'NOT SET';
-      
-      try {
-        const headerData = await db.getHeaderContent();
-        return {
-          status: 'connected',
-          hasDbUrl,
-          maskedUrl,
-          hasData: !!headerData,
-          dataPreview: headerData ? { id: headerData.id, siteName: headerData.siteName } : null
-        };
-      } catch (error: any) {
-        return {
-          status: 'error',
-          hasDbUrl,
-          maskedUrl,
-          error: error.message || 'Unknown error'
-        };
-      }
+      return await db.checkDatabaseStatus();
+    }),
+    envCheck: publicProcedure.query(() => {
+      return {
+        NODE_ENV: process.env.NODE_ENV || 'not set',
+        hasDbUrl: !!process.env.DATABASE_URL,
+        hasDbHost: !!process.env.DB_HOST,
+        hasDbUser: !!process.env.DB_USER,
+        hasDbPassword: !!process.env.DB_PASSWORD,
+        hasDbName: !!process.env.DB_NAME,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        timestamp: new Date().toISOString()
+      };
     }),
   }),
 

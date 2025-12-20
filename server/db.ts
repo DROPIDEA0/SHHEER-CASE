@@ -1,5 +1,6 @@
 import { eq, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { 
   InsertUser, users,
   siteSettings, InsertSiteSetting,
@@ -19,18 +20,116 @@ import {
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: mysql.Pool | null = null;
+
+// Build DATABASE_URL from individual environment variables if not set
+function getDatabaseUrl(): string | null {
+  // First check if DATABASE_URL is set directly
+  if (process.env.DATABASE_URL) {
+    console.log("[Database] Using DATABASE_URL from environment");
+    return process.env.DATABASE_URL;
+  }
+  
+  // Otherwise, build from individual variables
+  const host = process.env.DB_HOST || '127.0.0.1';
+  const user = process.env.DB_USER;
+  const password = process.env.DB_PASSWORD;
+  const database = process.env.DB_NAME;
+  const port = process.env.DB_PORT || '3306';
+  
+  if (user && password && database) {
+    const url = `mysql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+    console.log("[Database] Built DATABASE_URL from individual variables");
+    console.log(`[Database] Host: ${host}, User: ${user}, Database: ${database}`);
+    return url;
+  }
+  
+  console.warn("[Database] No database configuration found");
+  console.warn("[Database] Set DATABASE_URL or (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)");
+  return null;
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+  if (_db) return _db;
+  
+  const dbUrl = getDatabaseUrl();
+  if (!dbUrl) {
+    console.warn("[Database] Cannot connect: no database URL configured");
+    return null;
   }
-  return _db;
+  
+  try {
+    console.log("[Database] Attempting to connect...");
+    
+    // Create a connection pool for better reliability
+    _pool = mysql.createPool({
+      uri: dbUrl,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
+    });
+    
+    // Test the connection
+    const connection = await _pool.getConnection();
+    console.log("[Database] Connection successful!");
+    connection.release();
+    
+    _db = drizzle(_pool);
+    return _db;
+  } catch (error: any) {
+    console.error("[Database] Failed to connect:", error.message);
+    console.error("[Database] Error code:", error.code);
+    console.error("[Database] Error errno:", error.errno);
+    _db = null;
+    _pool = null;
+    return null;
+  }
+}
+
+// Export function to check database status (for debugging)
+export async function checkDatabaseStatus() {
+  const dbUrl = getDatabaseUrl();
+  const hasUrl = !!dbUrl;
+  const maskedUrl = dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'NOT SET';
+  
+  if (!dbUrl) {
+    return {
+      status: 'no_config',
+      hasUrl: false,
+      maskedUrl: 'NOT SET',
+      envVars: {
+        DATABASE_URL: !!process.env.DATABASE_URL,
+        DB_HOST: !!process.env.DB_HOST,
+        DB_USER: !!process.env.DB_USER,
+        DB_PASSWORD: !!process.env.DB_PASSWORD,
+        DB_NAME: !!process.env.DB_NAME
+      }
+    };
+  }
+  
+  try {
+    const connection = await mysql.createConnection(dbUrl);
+    const [rows] = await connection.execute('SELECT COUNT(*) as count FROM header_content');
+    await connection.end();
+    
+    return {
+      status: 'connected',
+      hasUrl: true,
+      maskedUrl,
+      dataCount: (rows as any)[0]?.count || 0
+    };
+  } catch (error: any) {
+    return {
+      status: 'error',
+      hasUrl: true,
+      maskedUrl,
+      error: error.message,
+      errorCode: error.code
+    };
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -400,7 +499,6 @@ export async function upsertFooterContent(data: InsertFooterContent) {
   }
 }
 
-
 // ============ TIMELINE CATEGORIES ============
 export async function getTimelineCategories() {
   const db = await getDb();
@@ -475,26 +573,23 @@ export async function deleteEvidenceCategory(id: number) {
 export async function getTimelineEventEvidence(eventId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
+  return db.select().from(timelineEventEvidence)
+    .where(eq(timelineEventEvidence.eventId, eventId))
+    .orderBy(asc(timelineEventEvidence.displayOrder));
 }
 
-export async function addEvidenceToEvent(eventId: number, evidenceId: number, displayOrder: number = 0) {
+export async function linkEvidenceToEvent(data: InsertTimelineEventEvidence) {
   const db = await getDb();
   if (!db) return null;
-  await db.insert(timelineEventEvidence).values({ eventId, evidenceId, displayOrder });
-  return { eventId, evidenceId, displayOrder };
+  await db.insert(timelineEventEvidence).values(data);
+  return data;
 }
 
-export async function removeEvidenceFromEvent(eventId: number, evidenceId: number) {
+export async function unlinkEvidenceFromEvent(eventId: number, evidenceId: number) {
   const db = await getDb();
   if (!db) return false;
-  const { and } = await import("drizzle-orm");
-  await db.delete(timelineEventEvidence).where(
-    and(
-      eq(timelineEventEvidence.eventId, eventId),
-      eq(timelineEventEvidence.evidenceId, evidenceId)
-    )
-  );
+  await db.delete(timelineEventEvidence)
+    .where(eq(timelineEventEvidence.eventId, eventId));
   return true;
 }
 
@@ -502,15 +597,13 @@ export async function getEvidenceForEvent(eventId: number) {
   const db = await getDb();
   if (!db) return [];
   
-  // Get evidence IDs linked to this event
-  const links = await db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
+  const links = await db.select().from(timelineEventEvidence)
+    .where(eq(timelineEventEvidence.eventId, eventId))
+    .orderBy(asc(timelineEventEvidence.displayOrder));
   
-  if (links.length === 0) return [];
-  
-  // Get the actual evidence items
   const evidenceIds = links.map(l => l.evidenceId);
-  const { inArray } = await import("drizzle-orm");
-  const items = await db.select().from(evidenceItems).where(inArray(evidenceItems.id, evidenceIds));
+  if (evidenceIds.length === 0) return [];
   
-  return items;
+  const items = await db.select().from(evidenceItems);
+  return items.filter(item => evidenceIds.includes(item.id));
 }

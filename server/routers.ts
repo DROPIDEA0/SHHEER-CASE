@@ -27,21 +27,42 @@ export const appRouter = router({
     }),
   }),
 
-  // ============ DEBUG API ============
-  debug: router({
-    checkDb: publicProcedure.query(async () => {
-      return await db.checkDatabaseStatus();
-    }),
-    envCheck: publicProcedure.query(() => {
+  // ============ DIAGNOSTICS API ============
+  diagnostics: router({
+    dbStatus: publicProcedure.query(async () => {
+      const envCheck = {
+        DATABASE_URL_EXISTS: !!process.env.DATABASE_URL,
+        DATABASE_URL_LENGTH: process.env.DATABASE_URL?.length || 0,
+        DATABASE_URL_PREFIX: process.env.DATABASE_URL?.substring(0, 20) + '...' || 'NOT_SET',
+        NODE_ENV: process.env.NODE_ENV || 'NOT_SET',
+      };
+      
+      let dbConnection = {
+        status: 'unknown' as string,
+        error: null as string | null,
+        tableCount: 0,
+      };
+      
+      try {
+        const dbInstance = await db.getDb();
+        if (dbInstance) {
+          // Try a simple query to test connection
+          const testResult = await db.getSiteSettings();
+          dbConnection.status = 'connected';
+          dbConnection.tableCount = Array.isArray(testResult) ? testResult.length : 0;
+        } else {
+          dbConnection.status = 'no_db_instance';
+          dbConnection.error = 'getDb() returned null - DATABASE_URL may be missing or invalid';
+        }
+      } catch (error: any) {
+        dbConnection.status = 'error';
+        dbConnection.error = error?.message || String(error);
+      }
+      
       return {
-        NODE_ENV: process.env.NODE_ENV || 'not set',
-        hasDbUrl: !!process.env.DATABASE_URL,
-        hasDbHost: !!process.env.DB_HOST,
-        hasDbUser: !!process.env.DB_USER,
-        hasDbPassword: !!process.env.DB_PASSWORD,
-        hasDbName: !!process.env.DB_NAME,
-        hasJwtSecret: !!process.env.JWT_SECRET,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: envCheck,
+        database: dbConnection,
       };
     }),
   }),

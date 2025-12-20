@@ -18,122 +18,122 @@ import {
   timelineEventEvidence, InsertTimelineEventEvidence
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { PRODUCTION_CONFIG, getDatabaseUrlFromConfig } from './_core/config.production';
 
 let _db: ReturnType<typeof drizzle> | null = null;
-let _pool: mysql.Pool | null = null;
+let _connectionPool: mysql.Pool | null = null;
 
-// Build DATABASE_URL from multiple sources - ALWAYS returns a URL (hardcoded fallback)
-function getDatabaseUrl(): string {
-  // 1. First check process.env.DATABASE_URL
-  if (process.env.DATABASE_URL) {
-    console.log("[Database] Using DATABASE_URL from process.env");
-    return process.env.DATABASE_URL;
+// Log database connection status at startup
+console.log("[Database] Initializing...");
+console.log("[Database] DATABASE_URL exists:", !!process.env.DATABASE_URL);
+console.log("[Database] DATABASE_URL length:", process.env.DATABASE_URL?.length || 0);
+if (process.env.DATABASE_URL) {
+  // Log sanitized URL (hide password)
+  const sanitizedUrl = process.env.DATABASE_URL.replace(/:[^:@]+@/, ':****@');
+  console.log("[Database] DATABASE_URL (sanitized):", sanitizedUrl);
+}
+
+// Parse DATABASE_URL and create connection with explicit options
+function parseDbUrl(url: string) {
+  try {
+    const dbUrl = new URL(url);
+    
+    // Extract database name (remove query string if present)
+    let database = dbUrl.pathname.slice(1); // Remove leading /
+    if (database.includes('?')) {
+      database = database.split('?')[0];
+    }
+    
+    // Check for SSL in query params
+    const sslParam = dbUrl.searchParams.get('ssl');
+    let ssl: any = undefined;
+    if (sslParam) {
+      try {
+        ssl = JSON.parse(sslParam);
+      } catch {
+        // If not JSON, treat as boolean
+        ssl = sslParam === 'true' ? { rejectUnauthorized: true } : undefined;
+      }
+    }
+    
+    return {
+      host: dbUrl.hostname,
+      port: parseInt(dbUrl.port) || 3306,
+      user: dbUrl.username,
+      password: decodeURIComponent(dbUrl.password),
+      database,
+      ssl,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to parse DATABASE_URL:", error);
+    return null;
   }
-  
-  // 2. Try to build from individual process.env variables
-  const host = process.env.DB_HOST;
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
-  const database = process.env.DB_NAME;
-  const port = process.env.DB_PORT || '3306';
-  
-  if (user && password && database) {
-    const url = `mysql://${user}:${encodeURIComponent(password)}@${host || '127.0.0.1'}:${port}/${database}`;
-    console.log("[Database] Built DATABASE_URL from process.env individual variables");
-    return url;
-  }
-  
-  // 3. ALWAYS use hardcoded config as fallback
-  console.log("[Database] Using HARDCODED database credentials from config.production.ts");
-  return getDatabaseUrlFromConfig();
 }
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (_db) return _db;
   
-  const dbUrl = getDatabaseUrl();
+
+  
+  const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
-    console.warn("[Database] Cannot connect: no database URL configured");
+    console.warn("[Database] DATABASE_URL is not set");
     return null;
   }
   
   try {
-    console.log("[Database] Attempting to connect...");
+    console.log("[Database] Attempting connection...");
     
-    // Create a connection pool for better reliability
-    _pool = mysql.createPool({
-      uri: dbUrl,
+    // Try parsing the URL and connecting with explicit options
+    const config = parseDbUrl(dbUrl);
+    if (!config) {
+      console.error("[Database] Invalid DATABASE_URL format");
+      return null;
+    }
+    
+    console.log("[Database] Connecting to:", config.host + ":" + config.port);
+    console.log("[Database] Database name:", config.database);
+    console.log("[Database] User:", config.user);
+    
+    // Create a connection pool with explicit settings
+    const poolConfig: mysql.PoolOptions = {
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      database: config.database,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      connectTimeout: 30000, // 30 seconds
       enableKeepAlive: true,
-      keepAliveInitialDelay: 0
-    });
+      keepAliveInitialDelay: 10000,
+    };
+    
+    // Add SSL if specified
+    if (config.ssl) {
+      poolConfig.ssl = config.ssl;
+      console.log("[Database] SSL enabled:", JSON.stringify(config.ssl));
+    }
+    
+    _connectionPool = mysql.createPool(poolConfig);
     
     // Test the connection
-    const connection = await _pool.getConnection();
-    console.log("[Database] Connection successful!");
-    connection.release();
+    const testConnection = await _connectionPool.getConnection();
+    console.log("[Database] Connection test successful!");
+    testConnection.release();
     
-    _db = drizzle(_pool);
+    // Create drizzle instance with the pool
+    _db = drizzle({ client: _connectionPool });
+    console.log("[Database] Drizzle instance created successfully");
+    
     return _db;
   } catch (error: any) {
-    console.error("[Database] Failed to connect:", error.message);
-    console.error("[Database] Error code:", error.code);
-    console.error("[Database] Error errno:", error.errno);
+    console.error("[Database] Connection failed:", error?.message || error);
+    console.error("[Database] Error code:", error?.code);
+    console.error("[Database] Error errno:", error?.errno);
     _db = null;
-    _pool = null;
     return null;
-  }
-}
-
-// Export function to check database status (for debugging)
-export async function checkDatabaseStatus() {
-  const dbUrl = getDatabaseUrl();
-  const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@');
-  
-  // Debug info
-  const debugInfo = {
-    envVars: {
-      DATABASE_URL: !!process.env.DATABASE_URL,
-      DB_HOST: !!process.env.DB_HOST,
-      DB_USER: !!process.env.DB_USER,
-      DB_PASSWORD: !!process.env.DB_PASSWORD,
-      DB_NAME: !!process.env.DB_NAME
-    },
-    configVars: {
-      DATABASE_URL: !!PRODUCTION_CONFIG.DATABASE_URL,
-      DB_HOST: !!PRODUCTION_CONFIG.DB_HOST,
-      DB_USER: !!PRODUCTION_CONFIG.DB_USER,
-      DB_PASSWORD: !!PRODUCTION_CONFIG.DB_PASSWORD,
-      DB_NAME: !!PRODUCTION_CONFIG.DB_NAME
-    },
-    usingHardcoded: !process.env.DATABASE_URL && !process.env.DB_USER
-  };
-  
-  try {
-    const connection = await mysql.createConnection(dbUrl);
-    const [rows] = await connection.execute('SELECT COUNT(*) as count FROM header_content');
-    await connection.end();
-    
-    return {
-      status: 'connected',
-      hasUrl: true,
-      maskedUrl,
-      dataCount: (rows as any)[0]?.count || 0,
-      ...debugInfo
-    };
-  } catch (error: any) {
-    return {
-      status: 'error',
-      hasUrl: true,
-      maskedUrl,
-      error: error.message,
-      errorCode: error.code,
-      ...debugInfo
-    };
   }
 }
 
@@ -504,6 +504,7 @@ export async function upsertFooterContent(data: InsertFooterContent) {
   }
 }
 
+
 // ============ TIMELINE CATEGORIES ============
 export async function getTimelineCategories() {
   const db = await getDb();
@@ -578,43 +579,9 @@ export async function deleteEvidenceCategory(id: number) {
 export async function getTimelineEventEvidence(eventId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(timelineEventEvidence)
-    .where(eq(timelineEventEvidence.eventId, eventId))
-    .orderBy(asc(timelineEventEvidence.displayOrder));
+  return db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
 }
 
-export async function linkEvidenceToEvent(data: InsertTimelineEventEvidence) {
-  const db = await getDb();
-  if (!db) return null;
-  await db.insert(timelineEventEvidence).values(data);
-  return data;
-}
-
-export async function unlinkEvidenceFromEvent(eventId: number, evidenceId: number) {
-  const db = await getDb();
-  if (!db) return false;
-  await db.delete(timelineEventEvidence)
-    .where(eq(timelineEventEvidence.eventId, eventId));
-  return true;
-}
-
-export async function getEvidenceForEvent(eventId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  
-  const links = await db.select().from(timelineEventEvidence)
-    .where(eq(timelineEventEvidence.eventId, eventId))
-    .orderBy(asc(timelineEventEvidence.displayOrder));
-  
-  const evidenceIds = links.map(l => l.evidenceId);
-  if (evidenceIds.length === 0) return [];
-  
-  const items = await db.select().from(evidenceItems);
-  return items.filter(item => evidenceIds.includes(item.id));
-}
-
-
-// ============ ADDITIONAL FUNCTIONS FOR EVENT-EVIDENCE LINKING ============
 export async function addEvidenceToEvent(eventId: number, evidenceId: number, displayOrder: number = 0) {
   const db = await getDb();
   if (!db) return null;
@@ -625,7 +592,29 @@ export async function addEvidenceToEvent(eventId: number, evidenceId: number, di
 export async function removeEvidenceFromEvent(eventId: number, evidenceId: number) {
   const db = await getDb();
   if (!db) return false;
-  await db.delete(timelineEventEvidence)
-    .where(eq(timelineEventEvidence.eventId, eventId));
+  const { and } = await import("drizzle-orm");
+  await db.delete(timelineEventEvidence).where(
+    and(
+      eq(timelineEventEvidence.eventId, eventId),
+      eq(timelineEventEvidence.evidenceId, evidenceId)
+    )
+  );
   return true;
+}
+
+export async function getEvidenceForEvent(eventId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Get evidence IDs linked to this event
+  const links = await db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
+  
+  if (links.length === 0) return [];
+  
+  // Get the actual evidence items
+  const evidenceIds = links.map(l => l.evidenceId);
+  const { inArray } = await import("drizzle-orm");
+  const items = await db.select().from(evidenceItems).where(inArray(evidenceItems.id, evidenceIds));
+  
+  return items;
 }

@@ -18,34 +18,42 @@ import {
   timelineEventEvidence, InsertTimelineEventEvidence
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { PRODUCTION_CONFIG, getDatabaseUrlFromConfig } from './_core/config.production';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: mysql.Pool | null = null;
 
-// Build DATABASE_URL from individual environment variables if not set
+// Build DATABASE_URL from multiple sources
 function getDatabaseUrl(): string | null {
-  // First check if DATABASE_URL is set directly
+  // 1. First check process.env.DATABASE_URL
   if (process.env.DATABASE_URL) {
-    console.log("[Database] Using DATABASE_URL from environment");
+    console.log("[Database] Using DATABASE_URL from process.env");
     return process.env.DATABASE_URL;
   }
   
-  // Otherwise, build from individual variables
-  const host = process.env.DB_HOST || '127.0.0.1';
+  // 2. Try to build from individual process.env variables
+  const host = process.env.DB_HOST;
   const user = process.env.DB_USER;
   const password = process.env.DB_PASSWORD;
   const database = process.env.DB_NAME;
   const port = process.env.DB_PORT || '3306';
   
-  if (user && password && database) {
+  if (host && user && password && database) {
     const url = `mysql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
-    console.log("[Database] Built DATABASE_URL from individual variables");
+    console.log("[Database] Built DATABASE_URL from process.env individual variables");
     console.log(`[Database] Host: ${host}, User: ${user}, Database: ${database}`);
     return url;
   }
   
+  // 3. Try config.production.ts as fallback
+  const configUrl = getDatabaseUrlFromConfig();
+  if (configUrl) {
+    console.log("[Database] Using DATABASE_URL from config.production.ts");
+    return configUrl;
+  }
+  
   console.warn("[Database] No database configuration found");
-  console.warn("[Database] Set DATABASE_URL or (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)");
+  console.warn("[Database] Checked: process.env.DATABASE_URL, process.env.DB_*, config.production.ts");
   return null;
 }
 
@@ -106,6 +114,13 @@ export async function checkDatabaseStatus() {
         DB_USER: !!process.env.DB_USER,
         DB_PASSWORD: !!process.env.DB_PASSWORD,
         DB_NAME: !!process.env.DB_NAME
+      },
+      configVars: {
+        DATABASE_URL: !!PRODUCTION_CONFIG.DATABASE_URL,
+        DB_HOST: !!PRODUCTION_CONFIG.DB_HOST,
+        DB_USER: !!PRODUCTION_CONFIG.DB_USER,
+        DB_PASSWORD: !!PRODUCTION_CONFIG.DB_PASSWORD,
+        DB_NAME: !!PRODUCTION_CONFIG.DB_NAME
       }
     };
   }

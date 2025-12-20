@@ -14,6 +14,9 @@ build/
 .env.test.local
 .env.production.local
 
+# Keep .env.production as template (not ignored)
+!.env.production
+
 # IDE and editor files
 .vscode/
 .idea/

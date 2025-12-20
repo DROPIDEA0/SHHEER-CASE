@@ -1,4 +1,37 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+
+// Try to load .env from multiple possible locations
+const possibleEnvPaths = [
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '../.env'),
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../../../.env'),
+  '/home/.env',
+  '/var/www/.env',
+];
+
+let envLoaded = false;
+for (const envPath of possibleEnvPaths) {
+  if (fs.existsSync(envPath)) {
+    console.log(`[ENV] Loading environment from: ${envPath}`);
+    dotenv.config({ path: envPath });
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  console.log('[ENV] No .env file found, using system environment variables');
+  dotenv.config(); // Try default location anyway
+}
+
+// Log environment status
+console.log('[ENV] DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+console.log('[ENV] DB_HOST:', process.env.DB_HOST ? 'SET' : 'NOT SET');
+console.log('[ENV] NODE_ENV:', process.env.NODE_ENV || 'NOT SET');
+
 import express from "express";
 import { createServer } from "http";
 import net from "net";

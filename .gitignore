@@ -3,7 +3,7 @@
 .pnpm-store/
 
 # Build outputs
-dist/
+# dist/ - NOT ignored, we need to deploy built files to Hostinger
 build/
 *.dist
 

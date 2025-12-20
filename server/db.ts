@@ -622,3 +622,20 @@ export async function getEvidenceForEvent(eventId: number) {
   const items = await db.select().from(evidenceItems);
   return items.filter(item => evidenceIds.includes(item.id));
 }
+
+
+// ============ ADDITIONAL FUNCTIONS FOR EVENT-EVIDENCE LINKING ============
+export async function addEvidenceToEvent(eventId: number, evidenceId: number, displayOrder: number = 0) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(timelineEventEvidence).values({ eventId, evidenceId, displayOrder });
+  return { eventId, evidenceId, displayOrder };
+}
+
+export async function removeEvidenceFromEvent(eventId: number, evidenceId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(timelineEventEvidence)
+    .where(eq(timelineEventEvidence.eventId, eventId));
+  return true;
+}

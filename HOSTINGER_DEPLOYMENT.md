@@ -1,136 +1,127 @@
-# Hostinger Node.js Deployment Guide
+# Hostinger Node.js Deployment Guide - Updated
 
-## Quick Fix for Environment Variables Issue
+## ⚠️ Important: Entry File Configuration
 
-If environment variables from Hostinger dashboard are not being detected, follow these steps:
+**Entry file must be: `server.js`** (NOT `dist/index.js`)
 
-### Step 1: Create .env file manually on Hostinger
+## Quick Setup Steps
 
-After deployment, use Hostinger File Manager to:
+### Step 1: Hostinger Settings
 
-1. Navigate to your project root directory (where `dist/` folder is located)
-2. Create a new file named `.env`
-3. Add the following content:
+| Setting | Value |
+|---------|-------|
+| **Framework preset** | Express |
+| **Branch** | main |
+| **Node version** | 22.x |
+| **Root directory** | ./ |
+| **Entry file** | **server.js** |
+| **Package manager** | npm (recommended) |
+
+### Step 2: Environment Variables (Required)
+
+Set these in Hostinger Dashboard → Environment Variables:
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | `mysql://u713123409_shheer_case:YOUR_PASSWORD@127.0.0.1:3306/u713123409_shheer_case` |
+| `DB_HOST` | `127.0.0.1` |
+| `DB_PORT` | `3306` |
+| `DB_USER` | `u713123409_shheer_case` |
+| `DB_PASSWORD` | `YOUR_PASSWORD` |
+| `DB_NAME` | `u713123409_shheer_case` |
+| `JWT_SECRET` | `3f9c8e7a1d4b6a0e9c2f5b8d7a6c4e1f0b9a8d5c7e2f4a6b1c9e8d0f5a2` |
+| `NODE_ENV` | `production` |
+
+**Replace `YOUR_PASSWORD` with your actual database password: `Downy1441680798402930`**
+
+### Step 3: Create .env File (Backup Method)
+
+If environment variables don't work, create `.env` file manually via Hostinger File Manager:
+
+1. Go to File Manager
+2. Navigate to project root (where `dist/` folder is)
+3. Create new file named `.env`
+4. Add content:
 
 ```env
-DATABASE_URL=mysql://u713123409_shheer_case:YOUR_PASSWORD@127.0.0.1:3306/u713123409_shheer_case
+DATABASE_URL=mysql://u713123409_shheer_case:Downy1441680798402930@127.0.0.1:3306/u713123409_shheer_case
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=u713123409_shheer_case
+DB_PASSWORD=Downy1441680798402930
+DB_NAME=u713123409_shheer_case
 JWT_SECRET=3f9c8e7a1d4b6a0e9c2f5b8d7a6c4e1f0b9a8d5c7e2f4a6b1c9e8d0f5a2
 NODE_ENV=production
 ```
 
-**Replace `YOUR_PASSWORD` with your actual database password!**
+### Step 4: Restart Application
 
-### Step 2: Restart the application
-
-After creating the `.env` file, restart your Node.js application from Hostinger dashboard.
-
-### Step 3: Verify
-
-Visit: `https://shheercase.com/api/trpc/debug.checkDb`
-
-You should see: `"status": "connected"`
+After setting environment variables or creating .env file, restart the application from Hostinger dashboard.
 
 ---
 
-## Build Configuration
-
-| Setting | Value |
-|---------|-------|
-| Framework preset | Express |
-| Branch | main |
-| Node version | 22.x |
-| Root directory | ./ |
-| Entry file | dist/index.js |
-| Package manager | pnpm |
-
-## Environment Variables (Dashboard)
-
-Even if dashboard variables don't work, set them anyway as backup:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | MySQL connection string | `mysql://user:pass@host:3306/dbname` |
-| `NODE_ENV` | Environment mode | `production` |
-| `PORT` | Server port (usually auto-set) | `3000` |
-| `JWT_SECRET` | Secret key for JWT tokens | Random 32+ character string |
-
-## Alternative: Individual Database Variables
-
-If `DATABASE_URL` doesn't work, try individual variables:
-
-| Variable | Value |
-|----------|-------|
-| `DB_HOST` | `127.0.0.1` |
-| `DB_PORT` | `3306` |
-| `DB_USER` | `u713123409_shheer_case` |
-| `DB_PASSWORD` | Your database password |
-| `DB_NAME` | `u713123409_shheer_case` |
-
 ## Troubleshooting
 
-### Build Scripts Warning
+### Error 503 Service Unavailable
 
-If you see this warning:
-```
-Ignored build scripts: @tailwindcss/oxide, esbuild
-```
+**Causes:**
+1. Server crashed during startup
+2. Environment variables not loaded
+3. Database connection failed
 
-**Solution 1:** Change Package manager to **npm** instead of pnpm
+**Solutions:**
+1. Check Entry file is set to `server.js`
+2. Verify environment variables are set correctly
+3. Create `.env` file manually (Step 3 above)
+4. Check application logs in Hostinger
 
-**Solution 2:** Add this to Build command field (if available):
-```bash
-pnpm approve-builds && pnpm build
-```
+### Database Connection Issues
 
-### Environment Variables Not Working
+**Test connection:**
+Visit: `https://shheercase.com/api/debug`
 
-1. Create `.env` file manually via File Manager (see Quick Fix above)
-2. Make sure the file is in the project root (same level as `dist/` folder)
-3. Restart the application after creating the file
+This will show:
+- Environment variables status
+- Database connection status
+- Error messages if any
 
-### Database Connection Failed
+### Build Warnings
 
-1. Verify database credentials in phpMyAdmin
-2. Check if the database user has proper permissions
-3. Try using `localhost` instead of `127.0.0.1`
-4. Ensure the password doesn't contain special characters that need encoding
+If you see "Ignored build scripts" warning:
+- Change Package manager to **npm** instead of pnpm
+- Or ignore the warning (it usually doesn't affect functionality)
 
-### Build Failed
-
-1. Check that all environment variables are set
-2. Verify DATABASE_URL is correct and database is accessible
-3. Try using npm instead of pnpm
-
-## Database Setup
-
-After deployment, you may need to run migrations:
-
-1. Connect to your MySQL database via phpMyAdmin
-2. Import the SQL file from the project
-
-## File Structure After Build
-
-```
-project-root/
-├── .env              # Create this manually!
-├── dist/
-│   ├── index.js      # Server entry point
-│   └── public/       # Static frontend files
-│       ├── index.html
-│       └── assets/
-└── node_modules/
-```
+---
 
 ## Debug Endpoints
 
-Use these endpoints to diagnose issues:
+| Endpoint | Description |
+|----------|-------------|
+| `/api/debug` | Shows environment status and errors |
+| `/api/health` | Health check (if in fallback mode) |
+| `/api/trpc/debug.checkDb` | Detailed database status |
+| `/api/trpc/debug.envCheck` | Environment variables check |
 
-- **Check environment variables:** `/api/trpc/debug.envCheck`
-- **Check database connection:** `/api/trpc/debug.checkDb`
+---
+
+## File Structure
+
+```
+project-root/
+├── server.js          # Entry point (Hostinger starts here)
+├── .env               # Environment variables (create manually if needed)
+├── dist/
+│   ├── index.js       # Built server code
+│   └── public/        # Built frontend files
+├── node_modules/
+└── package.json
+```
+
+---
 
 ## Support
 
-If you continue to have issues:
+If issues persist:
 1. Check Hostinger application logs
-2. Contact Hostinger support about environment variables
-3. Use the manual `.env` file method as a workaround
+2. Visit `/api/debug` to see error details
+3. Contact Hostinger support about Node.js environment variables

@@ -1,87 +1,100 @@
 // Entry point for Hostinger deployment
-import express from 'express';
+// This file handles the startup and provides fallback for database issues
+
+import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
-import mysql from 'mysql2/promise';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// Load environment variables from multiple possible locations
+const envPaths = [
+  path.join(__dirname, '.env'),
+  path.join(__dirname, '../.env'),
+  '/home/.env',
+  '/var/www/.env',
+];
 
-// Debug endpoint to check environment
-app.get('/api/debug/env', (req, res) => {
-  res.json({
-    NODE_ENV: process.env.NODE_ENV || 'not set',
-    hasDbUrl: !!process.env.DATABASE_URL,
-    hasJwtSecret: !!process.env.JWT_SECRET,
-    port: PORT,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Debug endpoint to check database connection
-app.get('/api/debug/db', async (req, res) => {
-  const dbUrl = process.env.DATABASE_URL;
-  const hasDbUrl = !!dbUrl;
-  const maskedUrl = dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'NOT SET';
-  
-  if (!dbUrl) {
-    return res.json({
-      status: 'no_database_url',
-      hasDbUrl: false,
-      maskedUrl: 'NOT SET',
-      message: 'DATABASE_URL environment variable is not set'
-    });
+let envLoaded = false;
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    console.log(`[Hostinger] Loading .env from: ${envPath}`);
+    dotenv.config({ path: envPath });
+    envLoaded = true;
+    break;
   }
-  
+}
+
+if (!envLoaded) {
+  console.log('[Hostinger] No .env file found, using system environment variables');
+  dotenv.config();
+}
+
+// Log environment status
+console.log('[Hostinger] Environment Status:');
+console.log('  - DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+console.log('  - DB_HOST:', process.env.DB_HOST || 'NOT SET');
+console.log('  - DB_USER:', process.env.DB_USER || 'NOT SET');
+console.log('  - DB_NAME:', process.env.DB_NAME || 'NOT SET');
+console.log('  - NODE_ENV:', process.env.NODE_ENV || 'NOT SET');
+
+// Now import and start the main server
+async function startServer() {
   try {
-    const connection = await mysql.createConnection(dbUrl);
-    
-    // Test query
-    const [rows] = await connection.execute('SELECT * FROM header_content LIMIT 1');
-    await connection.end();
-    
-    return res.json({
-      status: 'connected',
-      hasDbUrl: true,
-      maskedUrl,
-      hasData: rows.length > 0,
-      dataPreview: rows[0] || null
-    });
+    console.log('[Hostinger] Starting main server...');
+    await import('./dist/index.js');
+    console.log('[Hostinger] Main server started successfully');
   } catch (error) {
-    return res.json({
-      status: 'error',
-      hasDbUrl: true,
-      maskedUrl,
-      error: error.message,
-      errorCode: error.code
-    });
-  }
-});
-
-// Start the debug server first
-const debugServer = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Debug server running on port ${PORT}`);
-  
-  // Now try to load the main server
-  import('./dist/index.js')
-    .then(() => {
-      console.log('Main server loaded successfully');
-      debugServer.close();
-    })
-    .catch(err => {
-      console.error('Failed to load main server:', err.message);
-      console.log('Running in debug-only mode');
-      
-      // Serve static files as fallback
-      app.use(express.static(path.join(__dirname, 'dist/public')));
-      
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api/debug/')) {
-          res.sendFile(path.join(__dirname, 'dist/public/index.html'));
-        }
+    console.error('[Hostinger] Failed to start main server:', error.message);
+    console.error('[Hostinger] Stack:', error.stack);
+    
+    // Fallback: serve static files only
+    console.log('[Hostinger] Starting fallback static server...');
+    
+    const express = (await import('express')).default;
+    const app = express();
+    const PORT = process.env.PORT || 3000;
+    
+    // Health check endpoint
+    app.get('/api/health', (req, res) => {
+      res.json({
+        status: 'fallback_mode',
+        error: error.message,
+        timestamp: new Date().toISOString()
       });
     });
-});
+    
+    // Debug endpoint
+    app.get('/api/debug', (req, res) => {
+      res.json({
+        mode: 'fallback',
+        env: {
+          DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+          DB_HOST: process.env.DB_HOST || 'NOT SET',
+          DB_USER: process.env.DB_USER || 'NOT SET',
+          DB_NAME: process.env.DB_NAME || 'NOT SET',
+          NODE_ENV: process.env.NODE_ENV || 'NOT SET',
+        },
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    });
+    
+    // Serve static files
+    const publicPath = path.join(__dirname, 'dist/public');
+    if (fs.existsSync(publicPath)) {
+      app.use(express.static(publicPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(publicPath, 'index.html'));
+      });
+    }
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Hostinger] Fallback server running on port ${PORT}`);
+    });
+  }
+}
+
+startServer();

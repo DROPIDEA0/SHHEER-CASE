@@ -60,18 +60,90 @@ export const appRouter = router({
           dbConnection.tableCount = Array.isArray(testResult) ? testResult.length : 0;
         } else {
           dbConnection.status = 'no_db_instance';
-          dbConnection.error = 'getDb() returned null - DATABASE_URL may be missing or invalid';
+          dbConnection.error = 'getDb() returned null - check server logs for detailed error';
         }
       } catch (error: any) {
         dbConnection.status = 'error';
         dbConnection.error = error?.message || String(error);
+        // Add more error details
+        if (error?.code) {
+          dbConnection.error += ` (Code: ${error.code})`;
+        }
+        if (error?.errno) {
+          dbConnection.error += ` (Errno: ${error.errno})`;
+        }
       }
       
       return {
         timestamp: new Date().toISOString(),
         environment: envCheck,
+        dbUrl: {
+          exists: !!process.env.DATABASE_URL,
+          length: process.env.DATABASE_URL?.length || 0,
+          prefix: process.env.DATABASE_URL?.substring(0, 30) + '...' || 'NOT_SET',
+        },
         database: dbConnection,
       };
+    }),
+    
+    // Direct connection test with detailed error
+    testConnection: publicProcedure.query(async () => {
+      const mysql = await import('mysql2/promise');
+      
+      const dbUrl = process.env.DATABASE_URL;
+      const host = process.env.DB_HOST || 'localhost';
+      const port = parseInt(process.env.DB_PORT || '3306');
+      const user = process.env.DB_USER;
+      const password = process.env.DB_PASSWORD;
+      const database = process.env.DB_NAME;
+      
+      const result: any = {
+        timestamp: new Date().toISOString(),
+        config: {
+          host,
+          port,
+          user: user ? user.substring(0, 5) + '...' : 'NOT_SET',
+          database: database || 'NOT_SET',
+          hasPassword: !!password,
+          passwordLength: password?.length || 0,
+        },
+        connection: {
+          status: 'unknown',
+          error: null,
+        },
+      };
+      
+      try {
+        // Try direct connection with separate variables
+        if (host && user && password && database) {
+          const connection = await mysql.createConnection({
+            host,
+            port,
+            user,
+            password,
+            database,
+            connectTimeout: 10000,
+          });
+          
+          // Test query
+          const [rows] = await connection.execute('SELECT 1 as test');
+          result.connection.status = 'connected';
+          result.connection.testQuery = rows;
+          
+          await connection.end();
+        } else {
+          result.connection.status = 'missing_config';
+          result.connection.error = 'Missing required database configuration';
+        }
+      } catch (error: any) {
+        result.connection.status = 'error';
+        result.connection.error = error?.message || String(error);
+        result.connection.code = error?.code;
+        result.connection.errno = error?.errno;
+        result.connection.sqlState = error?.sqlState;
+      }
+      
+      return result;
     }),
   }),
 

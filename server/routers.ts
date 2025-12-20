@@ -35,6 +35,14 @@ export const appRouter = router({
         DATABASE_URL_LENGTH: process.env.DATABASE_URL?.length || 0,
         DATABASE_URL_PREFIX: process.env.DATABASE_URL?.substring(0, 20) + '...' || 'NOT_SET',
         NODE_ENV: process.env.NODE_ENV || 'NOT_SET',
+        // Separate DB variables
+        DB_HOST: process.env.DB_HOST || 'NOT_SET',
+        DB_PORT: process.env.DB_PORT || '3306',
+        DB_USER_EXISTS: !!process.env.DB_USER,
+        DB_PASSWORD_EXISTS: !!process.env.DB_PASSWORD,
+        DB_NAME: process.env.DB_NAME || 'NOT_SET',
+        // Working directory info
+        CWD: process.cwd(),
       };
       
       let dbConnection = {

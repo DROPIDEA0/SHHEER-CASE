@@ -25,11 +25,36 @@ let _connectionPool: mysql.Pool | null = null;
 // Log database connection status at startup
 console.log("[Database] Initializing...");
 console.log("[Database] DATABASE_URL exists:", !!process.env.DATABASE_URL);
-console.log("[Database] DATABASE_URL length:", process.env.DATABASE_URL?.length || 0);
+console.log("[Database] DB_HOST exists:", !!process.env.DB_HOST);
+console.log("[Database] DB_USER exists:", !!process.env.DB_USER);
+console.log("[Database] DB_NAME exists:", !!process.env.DB_NAME);
 if (process.env.DATABASE_URL) {
   // Log sanitized URL (hide password)
   const sanitizedUrl = process.env.DATABASE_URL.replace(/:[^:@]+@/, ':****@');
   console.log("[Database] DATABASE_URL (sanitized):", sanitizedUrl);
+}
+
+// Build DATABASE_URL from separate variables if not set
+function buildDatabaseUrl(): string | null {
+  // First try DATABASE_URL
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
+  }
+  
+  // Then try separate variables
+  const host = process.env.DB_HOST;
+  const port = process.env.DB_PORT || '3306';
+  const user = process.env.DB_USER;
+  const password = process.env.DB_PASSWORD;
+  const database = process.env.DB_NAME;
+  
+  if (host && user && password && database) {
+    const url = `mysql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+    console.log("[Database] Built DATABASE_URL from separate variables");
+    return url;
+  }
+  
+  return null;
 }
 
 // Parse DATABASE_URL and create connection with explicit options
@@ -75,9 +100,9 @@ export async function getDb() {
   
 
   
-  const dbUrl = process.env.DATABASE_URL;
+  const dbUrl = buildDatabaseUrl();
   if (!dbUrl) {
-    console.warn("[Database] DATABASE_URL is not set");
+    console.warn("[Database] No database configuration found (neither DATABASE_URL nor DB_HOST/DB_USER/DB_PASSWORD/DB_NAME)");
     return null;
   }
   

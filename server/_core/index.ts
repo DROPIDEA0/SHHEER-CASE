@@ -1,42 +1,50 @@
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 
-// Fix __dirname for ES modules
+// Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Try to load .env from multiple possible locations
-const possibleEnvPaths = [
+// Try to load .env from multiple locations for Hostinger compatibility
+const envPaths = [
   path.resolve(process.cwd(), '.env'),
-  path.resolve(process.cwd(), '../.env'),
+  path.resolve(process.cwd(), '.env.production'),
   path.resolve(__dirname, '../../.env'),
-  path.resolve(__dirname, '../../../.env'),
-  '/home/.env',
-  '/var/www/.env',
+  path.resolve(__dirname, '../../.env.production'),
 ];
 
+console.log('[Env] Current working directory:', process.cwd());
+console.log('[Env] Script directory:', __dirname);
+
 let envLoaded = false;
-for (const envPath of possibleEnvPaths) {
+for (const envPath of envPaths) {
+  console.log(`[Env] Checking: ${envPath}`);
   if (fs.existsSync(envPath)) {
-    console.log(`[ENV] Loading environment from: ${envPath}`);
-    dotenv.config({ path: envPath });
-    envLoaded = true;
-    break;
+    console.log(`[Env] Loading environment from: ${envPath}`);
+    const result = dotenv.config({ path: envPath });
+    if (result.error) {
+      console.error('[Env] Error loading .env:', result.error);
+    } else {
+      console.log('[Env] Successfully loaded environment variables');
+      envLoaded = true;
+      break;
+    }
   }
 }
 
 if (!envLoaded) {
-  console.log('[ENV] No .env file found, using system environment variables');
+  console.log('[Env] No .env file found in checked paths, using system environment variables');
   dotenv.config(); // Try default location anyway
 }
 
-// Log environment status
-console.log('[ENV] DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
-console.log('[ENV] DB_HOST:', process.env.DB_HOST ? 'SET' : 'NOT SET');
-console.log('[ENV] NODE_ENV:', process.env.NODE_ENV || 'NOT SET');
-
+// Log DATABASE_URL status
+console.log('[Env] DATABASE_URL exists:', !!process.env.DATABASE_URL);
+if (process.env.DATABASE_URL) {
+  const sanitized = process.env.DATABASE_URL.replace(/:[^:@]+@/, ':****@');
+  console.log('[Env] DATABASE_URL (sanitized):', sanitized);
+}
 import express from "express";
 import { createServer } from "http";
 import net from "net";

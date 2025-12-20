@@ -94,3 +94,12 @@
 - [x] Improve database connection logging
 - [x] Add explicit mysql2 pool configuration with SSL support
 - [x] Test database connection on Manus environment
+
+
+## Hostinger Environment Variables Fix (Dec 20)
+- [x] Add support for separate DB variables (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)
+- [x] Create .env.production file with Hostinger database credentials
+- [x] Update db.ts to read from multiple sources
+- [x] Update server/_core/index.ts to load .env from multiple paths
+- [x] Update diagnostics endpoint with more detailed info
+- [ ] Push updates to GitHub

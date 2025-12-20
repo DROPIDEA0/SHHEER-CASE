@@ -1,6 +1,7 @@
 {
   "name": "shheer-case",
   "version": "1.0.0",
+  "author": "DROPIDEA",
   "type": "module",
   "license": "MIT",
   "scripts": {

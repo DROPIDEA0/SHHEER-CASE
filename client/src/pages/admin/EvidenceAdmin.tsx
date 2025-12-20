@@ -21,13 +21,13 @@ const categories = [
   { value: 'whatsapp', label: 'WhatsApp', color: 'bg-emerald-100 text-emerald-800' },
 ];
 
-type Category = 'licenses' | 'letters' | 'swift' | 'documents' | 'emails' | 'whatsapp';
+type Category = string;
 
 interface EvidenceItem {
   id: number;
   title: string;
   description: string | null;
-  category: Category;
+  category: string;
   fileUrl: string | null;
   fileName: string | null;
   fileType: string | null;

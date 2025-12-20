@@ -17,6 +17,10 @@
   <a href="#case-overview">Case Overview</a>
 </p>
 
+<p align="center">
+  <strong>Author:</strong> DROPIDEA
+</p>
+
 ---
 
 ## 📋 Project Overview
@@ -34,6 +38,7 @@ This website serves as a comprehensive documentation platform for the legal case
 ## ✨ Features
 
 ### Public Website
+- **Logo Preloader** - Elegant loading animation with company logo
 - **Hero Section** - Case overview with key statistics
 - **Case Overview** - Parties involved (Plaintiff, Defendant, International Parties)
 - **Interactive Timeline** - 17 chronological events with filtering by year and category
@@ -52,9 +57,10 @@ This website serves as a comprehensive documentation platform for the legal case
   - Videos management
   - Footer configuration
 - **Category Management:**
-  - Timeline Categories (Foundation, Investment Deal, SWIFT Operations, Critical Failure, Legal Proceedings)
+  - Timeline Categories with customizable colors (Badge, Background, Text, Accent)
   - Evidence Categories (Licenses, Emails, SWIFT, WhatsApp, Letters, Documents)
 - **Evidence Linking** - Link documents to timeline events
+- **Color Customization** - Full color picker for timeline category boxes
 
 ---
 
@@ -94,7 +100,7 @@ This website serves as a comprehensive documentation platform for the legal case
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/SHHEER-CASE.git
+git clone https://github.com/DROPIDEA0/SHHEER-CASE.git
 cd SHHEER-CASE
 ```
 
@@ -139,7 +145,7 @@ pnpm dev
 | `hero_section` | Hero section content |
 | `overview_parties` | Case parties (Plaintiff, Defendant, Third Parties) |
 | `timeline_events` | Timeline events with dates and categories |
-| `timeline_categories` | Dynamic timeline categories |
+| `timeline_categories` | Dynamic timeline categories with colors |
 | `evidence_items` | Evidence documents and files |
 | `evidence_categories` | Dynamic evidence categories |
 | `timeline_event_evidence` | Junction table linking events to evidence |
@@ -167,11 +173,19 @@ Access the admin panel at `/admin` to manage all website content.
 | Hero Section | `/admin/hero` | Main banner content |
 | Case Parties | `/admin/parties` | Plaintiff, Defendant, Third Parties |
 | Timeline Events | `/admin/timeline` | Case timeline management |
-| Timeline Categories | `/admin/timeline-categories` | Category management |
+| Timeline Categories | `/admin/timeline-categories` | Category management with colors |
 | Evidence | `/admin/evidence` | Document management |
 | Evidence Categories | `/admin/evidence-categories` | Category management |
 | Videos | `/admin/videos` | Video management |
 | Footer | `/admin/footer` | Footer content |
+
+### Timeline Category Color Customization
+
+Each timeline category supports the following color options:
+- **Badge Color** - Main color for category badge and timeline node
+- **Box Background** - Background color of the event card
+- **Text Color** - Text color inside the event card
+- **Light/Accent Color** - Light accent color for tags and highlights
 
 ---
 
@@ -225,6 +239,12 @@ shheer-case/
 - View Evidence popup with linked documents
 - Improved admin UI with file URL management
 
+### Version 2.2 - Latest Updates (December 2024)
+- **Logo Preloader** - Added elegant loading animation with company logo
+- **Dynamic Category Colors** - Full color customization for timeline categories
+- **Fixed Category Selection** - Resolved issue with category selection in Timeline admin
+- **Color Preview** - Live preview of category colors in admin panel
+
 ---
 
 ## 📜 Case Overview
@@ -267,6 +287,14 @@ shheer-case/
 
 This project is created for legal documentation purposes. All information presented is based on official documents and evidence submitted to the Banking Disputes Committee.
 
+**MIT License** - See LICENSE file for details.
+
+---
+
+## 👤 Author
+
+**DROPIDEA**
+
 ---
 
 ## 📞 Contact
@@ -278,5 +306,5 @@ This project is created for legal documentation purposes. All information presen
 ---
 
 <p align="center">
-  <sub>Built with ❤️ for legal documentation and transparency</sub>
+  <sub>Built with ❤️ by DROPIDEA for legal documentation and transparency</sub>
 </p>

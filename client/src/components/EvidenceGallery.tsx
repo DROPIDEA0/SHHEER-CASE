@@ -24,7 +24,7 @@ interface EvidenceItem {
   id: string;
   title: string;
   description: string;
-  category: 'licenses' | 'letters' | 'swift' | 'documents' | 'emails' | 'whatsapp';
+  category: string;
   fileUrl: string;
   thumbnailUrl?: string;
   fileName?: string;

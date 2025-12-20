@@ -107,20 +107,20 @@ export const appRouter = router({
 
     getTimelineEvents: adminProcedure.query(() => db.getTimelineEvents()),
     createTimelineEvent: adminProcedure
-      .input(z.object({ date: z.string(), time: z.string().nullable().optional(), title: z.string(), description: z.string().nullable().optional(), category: z.enum(["foundation", "investment_deal", "swift_operations", "critical_failure", "legal_proceedings"]), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
-      .mutation(({ input }) => db.createTimelineEvent(input)),
+      .input(z.object({ date: z.string(), time: z.string().nullable().optional(), title: z.string(), description: z.string().nullable().optional(), category: z.string(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
+      .mutation(({ input }) => db.createTimelineEvent(input as any)),
     updateTimelineEvent: adminProcedure
-      .input(z.object({ id: z.number(), data: z.object({ date: z.string().optional(), time: z.string().nullable().optional(), title: z.string().optional(), description: z.string().nullable().optional(), category: z.enum(["foundation", "investment_deal", "swift_operations", "critical_failure", "legal_proceedings"]).optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
-      .mutation(({ input }) => db.updateTimelineEvent(input.id, input.data)),
+      .input(z.object({ id: z.number(), data: z.object({ date: z.string().optional(), time: z.string().nullable().optional(), title: z.string().optional(), description: z.string().nullable().optional(), category: z.string().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
+      .mutation(({ input }) => db.updateTimelineEvent(input.id, input.data as any)),
     deleteTimelineEvent: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteTimelineEvent(input.id)),
 
     getEvidenceItems: adminProcedure.query(() => db.getEvidenceItems()),
     createEvidenceItem: adminProcedure
-      .input(z.object({ title: z.string(), description: z.string().nullable().optional(), category: z.enum(["licenses", "letters", "swift", "documents", "emails", "whatsapp"]), fileUrl: z.string().nullable().optional(), fileName: z.string().nullable().optional(), fileType: z.string().nullable().optional(), thumbnailUrl: z.string().nullable().optional(), eventId: z.number().nullable().optional(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
-      .mutation(({ input }) => db.createEvidenceItem(input)),
+      .input(z.object({ title: z.string(), description: z.string().nullable().optional(), category: z.string(), fileUrl: z.string().nullable().optional(), fileName: z.string().nullable().optional(), fileType: z.string().nullable().optional(), thumbnailUrl: z.string().nullable().optional(), eventId: z.number().nullable().optional(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
+      .mutation(({ input }) => db.createEvidenceItem(input as any)),
     updateEvidenceItem: adminProcedure
-      .input(z.object({ id: z.number(), data: z.object({ title: z.string().optional(), description: z.string().nullable().optional(), category: z.enum(["licenses", "letters", "swift", "documents", "emails", "whatsapp"]).optional(), fileUrl: z.string().nullable().optional(), fileName: z.string().nullable().optional(), fileType: z.string().nullable().optional(), thumbnailUrl: z.string().nullable().optional(), eventId: z.number().nullable().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
-      .mutation(({ input }) => db.updateEvidenceItem(input.id, input.data)),
+      .input(z.object({ id: z.number(), data: z.object({ title: z.string().optional(), description: z.string().nullable().optional(), category: z.string().optional(), fileUrl: z.string().nullable().optional(), fileName: z.string().nullable().optional(), fileType: z.string().nullable().optional(), thumbnailUrl: z.string().nullable().optional(), eventId: z.number().nullable().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
+      .mutation(({ input }) => db.updateEvidenceItem(input.id, input.data as any)),
     deleteEvidenceItem: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteEvidenceItem(input.id)),
 
     getVideos: adminProcedure.query(() => db.getVideos()),

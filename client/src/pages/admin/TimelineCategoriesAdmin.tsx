@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Tag } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TimelineCategoriesAdmin() {
@@ -16,9 +16,9 @@ export default function TimelineCategoriesAdmin() {
     key: '',
     label: '',
     color: '#5d6d4e',
-    bgColor: 'bg-[#5d6d4e]',
-    textColor: 'text-[#5d6d4e]',
-    lightColor: 'bg-[#5d6d4e]/10',
+    bgColor: '#f5f2eb',
+    textColor: '#3d3d3d',
+    lightColor: '#5d6d4e1a',
     displayOrder: 0,
   });
 
@@ -54,9 +54,9 @@ export default function TimelineCategoriesAdmin() {
       key: '',
       label: '',
       color: '#5d6d4e',
-      bgColor: 'bg-[#5d6d4e]',
-      textColor: 'text-[#5d6d4e]',
-      lightColor: 'bg-[#5d6d4e]/10',
+      bgColor: '#f5f2eb',
+      textColor: '#3d3d3d',
+      lightColor: '#5d6d4e1a',
       displayOrder: 0,
     });
     setEditingCategory(null);
@@ -77,21 +77,21 @@ export default function TimelineCategoriesAdmin() {
       key: category.key,
       label: category.label,
       color: category.color || '#5d6d4e',
-      bgColor: category.bgColor || 'bg-[#5d6d4e]',
-      textColor: category.textColor || 'text-[#5d6d4e]',
-      lightColor: category.lightColor || 'bg-[#5d6d4e]/10',
+      bgColor: category.bgColor || '#f5f2eb',
+      textColor: category.textColor || '#3d3d3d',
+      lightColor: category.lightColor || '#5d6d4e1a',
       displayOrder: category.displayOrder || 0,
     });
     setIsDialogOpen(true);
   };
 
-  const handleColorChange = (color: string) => {
+  const handleMainColorChange = (color: string) => {
+    // Auto-generate light color from main color (10% opacity)
+    const lightColor = color + '1a';
     setFormData({
       ...formData,
       color,
-      bgColor: `bg-[${color}]`,
-      textColor: `text-[${color}]`,
-      lightColor: `bg-[${color}]/10`,
+      lightColor,
     });
   };
 
@@ -110,7 +110,7 @@ export default function TimelineCategoriesAdmin() {
                 Add Category
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
               </DialogHeader>
@@ -135,24 +135,119 @@ export default function TimelineCategoriesAdmin() {
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="color">Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="color"
-                      type="color"
-                      value={formData.color}
-                      onChange={(e) => handleColorChange(e.target.value)}
-                      className="w-16 h-10 p-1"
-                    />
-                    <Input
-                      value={formData.color}
-                      onChange={(e) => handleColorChange(e.target.value)}
-                      placeholder="#5d6d4e"
-                      className="flex-1"
-                    />
+                
+                {/* Color Settings Section */}
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Palette className="w-4 h-4 text-[#5d6d4e]" />
+                    <span className="font-medium text-sm">Color Settings</span>
+                  </div>
+                  
+                  {/* Main Badge Color */}
+                  <div className="mb-4">
+                    <Label htmlFor="color">Badge Color (Main)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="color"
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) => handleMainColorChange(e.target.value)}
+                        className="w-16 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.color}
+                        onChange={(e) => handleMainColorChange(e.target.value)}
+                        placeholder="#5d6d4e"
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-[#3d3d3d]/50 mt-1">Used for badge background and timeline node</p>
+                  </div>
+
+                  {/* Box Background Color */}
+                  <div className="mb-4">
+                    <Label htmlFor="bgColor">Box Background Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="bgColor"
+                        type="color"
+                        value={formData.bgColor}
+                        onChange={(e) => setFormData({ ...formData, bgColor: e.target.value })}
+                        className="w-16 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.bgColor}
+                        onChange={(e) => setFormData({ ...formData, bgColor: e.target.value })}
+                        placeholder="#f5f2eb"
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-[#3d3d3d]/50 mt-1">Background color of the event card</p>
+                  </div>
+
+                  {/* Text Color */}
+                  <div className="mb-4">
+                    <Label htmlFor="textColor">Text Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="textColor"
+                        type="color"
+                        value={formData.textColor}
+                        onChange={(e) => setFormData({ ...formData, textColor: e.target.value })}
+                        className="w-16 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.textColor}
+                        onChange={(e) => setFormData({ ...formData, textColor: e.target.value })}
+                        placeholder="#3d3d3d"
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-[#3d3d3d]/50 mt-1">Text color inside the event card</p>
+                  </div>
+
+                  {/* Light/Accent Color */}
+                  <div className="mb-4">
+                    <Label htmlFor="lightColor">Light/Accent Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="lightColor"
+                        type="color"
+                        value={formData.lightColor.replace(/[a-f0-9]{2}$/i, '')}
+                        onChange={(e) => setFormData({ ...formData, lightColor: e.target.value + '1a' })}
+                        className="w-16 h-10 p-1"
+                      />
+                      <Input
+                        value={formData.lightColor}
+                        onChange={(e) => setFormData({ ...formData, lightColor: e.target.value })}
+                        placeholder="#5d6d4e1a"
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-[#3d3d3d]/50 mt-1">Light accent color for tags and highlights</p>
                   </div>
                 </div>
+
+                {/* Preview Box */}
+                <div className="border rounded-lg p-4" style={{ backgroundColor: formData.bgColor }}>
+                  <div className="text-xs text-[#3d3d3d]/50 mb-2">Preview:</div>
+                  <div 
+                    className="inline-block px-2 py-1 rounded text-white text-sm mb-2"
+                    style={{ backgroundColor: formData.color }}
+                  >
+                    {formData.label || 'Category Label'}
+                  </div>
+                  <p style={{ color: formData.textColor }} className="text-sm">
+                    Sample event title and description text
+                  </p>
+                  <div 
+                    className="inline-block px-2 py-0.5 rounded text-xs mt-2"
+                    style={{ backgroundColor: formData.lightColor, color: formData.color }}
+                  >
+                    Sample Tag
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="displayOrder">Display Order</Label>
                   <Input
@@ -177,7 +272,11 @@ export default function TimelineCategoriesAdmin() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {categories?.map((category) => (
-            <Card key={category.id} className="border-[#c4a35a]/20">
+            <Card key={category.id} className="border-[#c4a35a]/20 overflow-hidden">
+              <div 
+                className="h-2" 
+                style={{ backgroundColor: category.color || '#5d6d4e' }}
+              />
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -210,6 +309,28 @@ export default function TimelineCategoriesAdmin() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span>Order: {category.displayOrder}</span>
+                  </div>
+                  {/* Color Preview */}
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#c4a35a]/10">
+                    <Palette className="w-3 h-3" />
+                    <span>Colors:</span>
+                    <div className="flex gap-1">
+                      <div 
+                        className="w-5 h-5 rounded border border-[#c4a35a]/20" 
+                        style={{ backgroundColor: category.color || '#5d6d4e' }}
+                        title="Badge Color"
+                      />
+                      <div 
+                        className="w-5 h-5 rounded border border-[#c4a35a]/20" 
+                        style={{ backgroundColor: category.bgColor || '#f5f2eb' }}
+                        title="Box Background"
+                      />
+                      <div 
+                        className="w-5 h-5 rounded border border-[#c4a35a]/20" 
+                        style={{ backgroundColor: category.textColor || '#3d3d3d' }}
+                        title="Text Color"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>

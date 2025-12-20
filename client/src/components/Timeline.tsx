@@ -173,7 +173,10 @@ function TimelineEventCard({
           transition={{ duration: 0.5, delay: 0.1 }}
           className="flex-1 md:w-1/2"
         >
-          <div className={`${colors.light} rounded-xl p-6 border border-[#c4a35a]/20 relative`}>
+          <div 
+            className="rounded-xl p-6 border border-[#c4a35a]/20 relative"
+            style={{ backgroundColor: colors.bg }}
+          >
             {/* Critical Badge */}
             {isCritical && (
               <div className="absolute -top-3 -right-3 bg-[#722f37] text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
@@ -191,7 +194,7 @@ function TimelineEventCard({
             </Badge>
             
             {/* Date & Time */}
-            <div className="flex items-center gap-4 text-sm text-[#3d3d3d]/60 mb-3">
+            <div className="flex items-center gap-4 text-sm mb-3" style={{ color: `${colors.text}99` }}>
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {formatDate(event.date)}
@@ -206,14 +209,14 @@ function TimelineEventCard({
             
             {/* Title */}
             <h3 
-              className="text-lg font-bold text-[#3d3d3d] mb-2"
-              style={{ fontFamily: 'var(--font-heading)' }}
+              className="text-lg font-bold mb-2"
+              style={{ fontFamily: 'var(--font-heading)', color: colors.text }}
             >
               {event.title}
             </h3>
             
             {/* Description */}
-            <p className="text-[#3d3d3d]/70 text-sm leading-relaxed mb-4">
+            <p className="text-sm leading-relaxed mb-4" style={{ color: `${colors.text}b3` }}>
               {event.description}
             </p>
 
@@ -224,7 +227,7 @@ function TimelineEventCard({
                   <span 
                     key={i}
                     className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full"
-                    style={{ backgroundColor: `${colors.color}20`, color: colors.color }}
+                    style={{ backgroundColor: colors.light, color: colors.color }}
                   >
                     <Tag className="w-3 h-3" />
                     {tag}
@@ -340,9 +343,9 @@ export default function Timeline({ events }: TimelineProps) {
         acc[cat.key] = {
           label: cat.label,
           color: cat.color || '#5d6d4e',
-          bg: `bg-[${cat.color || '#5d6d4e'}]`,
-          text: `text-[${cat.color || '#5d6d4e'}]`,
-          light: `bg-[${cat.color || '#5d6d4e'}]/10`
+          bg: cat.bgColor || '#f5f2eb',
+          text: cat.textColor || '#3d3d3d',
+          light: cat.lightColor || `${cat.color || '#5d6d4e'}1a`
         };
         return acc;
       }, {} as Record<string, { label: string; color: string; bg: string; text: string; light: string }>)

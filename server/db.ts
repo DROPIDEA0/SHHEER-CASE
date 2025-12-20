@@ -23,8 +23,8 @@ import { PRODUCTION_CONFIG, getDatabaseUrlFromConfig } from './_core/config.prod
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: mysql.Pool | null = null;
 
-// Build DATABASE_URL from multiple sources
-function getDatabaseUrl(): string | null {
+// Build DATABASE_URL from multiple sources - ALWAYS returns a URL (hardcoded fallback)
+function getDatabaseUrl(): string {
   // 1. First check process.env.DATABASE_URL
   if (process.env.DATABASE_URL) {
     console.log("[Database] Using DATABASE_URL from process.env");
@@ -38,23 +38,15 @@ function getDatabaseUrl(): string | null {
   const database = process.env.DB_NAME;
   const port = process.env.DB_PORT || '3306';
   
-  if (host && user && password && database) {
-    const url = `mysql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+  if (user && password && database) {
+    const url = `mysql://${user}:${encodeURIComponent(password)}@${host || '127.0.0.1'}:${port}/${database}`;
     console.log("[Database] Built DATABASE_URL from process.env individual variables");
-    console.log(`[Database] Host: ${host}, User: ${user}, Database: ${database}`);
     return url;
   }
   
-  // 3. Try config.production.ts as fallback
-  const configUrl = getDatabaseUrlFromConfig();
-  if (configUrl) {
-    console.log("[Database] Using DATABASE_URL from config.production.ts");
-    return configUrl;
-  }
-  
-  console.warn("[Database] No database configuration found");
-  console.warn("[Database] Checked: process.env.DATABASE_URL, process.env.DB_*, config.production.ts");
-  return null;
+  // 3. ALWAYS use hardcoded config as fallback
+  console.log("[Database] Using HARDCODED database credentials from config.production.ts");
+  return getDatabaseUrlFromConfig();
 }
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
@@ -100,30 +92,26 @@ export async function getDb() {
 // Export function to check database status (for debugging)
 export async function checkDatabaseStatus() {
   const dbUrl = getDatabaseUrl();
-  const hasUrl = !!dbUrl;
-  const maskedUrl = dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'NOT SET';
+  const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@');
   
-  if (!dbUrl) {
-    return {
-      status: 'no_config',
-      hasUrl: false,
-      maskedUrl: 'NOT SET',
-      envVars: {
-        DATABASE_URL: !!process.env.DATABASE_URL,
-        DB_HOST: !!process.env.DB_HOST,
-        DB_USER: !!process.env.DB_USER,
-        DB_PASSWORD: !!process.env.DB_PASSWORD,
-        DB_NAME: !!process.env.DB_NAME
-      },
-      configVars: {
-        DATABASE_URL: !!PRODUCTION_CONFIG.DATABASE_URL,
-        DB_HOST: !!PRODUCTION_CONFIG.DB_HOST,
-        DB_USER: !!PRODUCTION_CONFIG.DB_USER,
-        DB_PASSWORD: !!PRODUCTION_CONFIG.DB_PASSWORD,
-        DB_NAME: !!PRODUCTION_CONFIG.DB_NAME
-      }
-    };
-  }
+  // Debug info
+  const debugInfo = {
+    envVars: {
+      DATABASE_URL: !!process.env.DATABASE_URL,
+      DB_HOST: !!process.env.DB_HOST,
+      DB_USER: !!process.env.DB_USER,
+      DB_PASSWORD: !!process.env.DB_PASSWORD,
+      DB_NAME: !!process.env.DB_NAME
+    },
+    configVars: {
+      DATABASE_URL: !!PRODUCTION_CONFIG.DATABASE_URL,
+      DB_HOST: !!PRODUCTION_CONFIG.DB_HOST,
+      DB_USER: !!PRODUCTION_CONFIG.DB_USER,
+      DB_PASSWORD: !!PRODUCTION_CONFIG.DB_PASSWORD,
+      DB_NAME: !!PRODUCTION_CONFIG.DB_NAME
+    },
+    usingHardcoded: !process.env.DATABASE_URL && !process.env.DB_USER
+  };
   
   try {
     const connection = await mysql.createConnection(dbUrl);
@@ -134,7 +122,8 @@ export async function checkDatabaseStatus() {
       status: 'connected',
       hasUrl: true,
       maskedUrl,
-      dataCount: (rows as any)[0]?.count || 0
+      dataCount: (rows as any)[0]?.count || 0,
+      ...debugInfo
     };
   } catch (error: any) {
     return {
@@ -142,7 +131,8 @@ export async function checkDatabaseStatus() {
       hasUrl: true,
       maskedUrl,
       error: error.message,
-      errorCode: error.code
+      errorCode: error.code,
+      ...debugInfo
     };
   }
 }

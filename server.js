@@ -2,12 +2,24 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mysql from 'mysql2/promise';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Debug endpoint to check environment
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    NODE_ENV: process.env.NODE_ENV || 'not set',
+    hasDbUrl: !!process.env.DATABASE_URL,
+    hasJwtSecret: !!process.env.JWT_SECRET,
+    port: PORT,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Debug endpoint to check database connection
 app.get('/api/debug/db', async (req, res) => {
@@ -25,8 +37,6 @@ app.get('/api/debug/db', async (req, res) => {
   }
   
   try {
-    // Try to connect using mysql2
-    const mysql = await import('mysql2/promise');
     const connection = await mysql.createConnection(dbUrl);
     
     // Test query
@@ -51,32 +61,27 @@ app.get('/api/debug/db', async (req, res) => {
   }
 });
 
-// Debug endpoint to check environment
-app.get('/api/debug/env', (req, res) => {
-  res.json({
-    NODE_ENV: process.env.NODE_ENV || 'not set',
-    hasDbUrl: !!process.env.DATABASE_URL,
-    hasJwtSecret: !!process.env.JWT_SECRET,
-    port: PORT
-  });
-});
-
-// Import the main server after debug endpoints
-import('./dist/index.js').catch(err => {
-  console.error('Failed to load main server:', err.message);
+// Start the debug server first
+const debugServer = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Debug server running on port ${PORT}`);
   
-  // Serve static files as fallback
-  app.use(express.static(path.join(__dirname, 'dist/public')));
-  
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api/')) {
-      res.sendFile(path.join(__dirname, 'dist/public/index.html'));
-    } else {
-      res.status(500).json({ error: 'Server not fully initialized', details: err.message });
-    }
-  });
-  
-  app.listen(PORT, () => {
-    console.log(`Fallback server running on port ${PORT}`);
-  });
+  // Now try to load the main server
+  import('./dist/index.js')
+    .then(() => {
+      console.log('Main server loaded successfully');
+      debugServer.close();
+    })
+    .catch(err => {
+      console.error('Failed to load main server:', err.message);
+      console.log('Running in debug-only mode');
+      
+      // Serve static files as fallback
+      app.use(express.static(path.join(__dirname, 'dist/public')));
+      
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api/debug/')) {
+          res.sendFile(path.join(__dirname, 'dist/public/index.html'));
+        }
+      });
+    });
 });

@@ -227,10 +227,10 @@ export const appRouter = router({
 
     getTimelineEvents: adminProcedure.query(() => db.getTimelineEvents()),
     createTimelineEvent: adminProcedure
-      .input(z.object({ date: z.string(), time: z.string().nullable().optional(), title: z.string(), description: z.string().nullable().optional(), category: z.string(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
+      .input(z.object({ date: z.string(), time: z.string().nullable().optional(), title: z.string(), description: z.string().nullable().optional(), category: z.string(), customColor: z.string().nullable().optional(), customBgColor: z.string().nullable().optional(), customTextColor: z.string().nullable().optional(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
       .mutation(({ input }) => db.createTimelineEvent(input as any)),
     updateTimelineEvent: adminProcedure
-      .input(z.object({ id: z.number(), data: z.object({ date: z.string().optional(), time: z.string().nullable().optional(), title: z.string().optional(), description: z.string().nullable().optional(), category: z.string().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
+      .input(z.object({ id: z.number(), data: z.object({ date: z.string().optional(), time: z.string().nullable().optional(), title: z.string().optional(), description: z.string().nullable().optional(), category: z.string().optional(), customColor: z.string().nullable().optional(), customBgColor: z.string().nullable().optional(), customTextColor: z.string().nullable().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
       .mutation(({ input }) => db.updateTimelineEvent(input.id, input.data as any)),
     deleteTimelineEvent: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteTimelineEvent(input.id)),
 
@@ -262,6 +262,15 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const buffer = Buffer.from(input.fileData, 'base64');
         const fileKey = `evidence/${Date.now()}-${input.fileName}`;
+        const result = await storagePut(fileKey, buffer, input.contentType);
+        return result;
+      }),
+
+    uploadVideo: adminProcedure
+      .input(z.object({ fileName: z.string(), fileData: z.string(), contentType: z.string() }))
+      .mutation(async ({ input }) => {
+        const buffer = Buffer.from(input.fileData, 'base64');
+        const fileKey = `videos/${Date.now()}-${input.fileName}`;
         const result = await storagePut(fileKey, buffer, input.contentType);
         return result;
       }),

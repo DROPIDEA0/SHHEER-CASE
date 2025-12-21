@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Video, Play, ExternalLink, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Video, Play, ExternalLink, Copy, Upload, Link, Loader2 } from 'lucide-react';
 
 interface VideoItem {
   id: number;
@@ -26,9 +27,16 @@ export default function VideosAdmin() {
   const createMutation = trpc.admin.createVideo.useMutation();
   const updateMutation = trpc.admin.updateVideo.useMutation();
   const deleteMutation = trpc.admin.deleteVideo.useMutation();
+  const uploadVideoMutation = trpc.admin.uploadVideo.useMutation();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
+  const [uploadMethod, setUploadMethod] = useState<'url' | 'upload'>('url');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -50,6 +58,9 @@ export default function VideosAdmin() {
       isActive: true,
     });
     setEditingVideo(null);
+    setUploadMethod('url');
+    setIsUploading(false);
+    setUploadProgress(0);
   };
 
   const openCreateDialog = () => {
@@ -68,7 +79,100 @@ export default function VideosAdmin() {
       displayOrder: video.displayOrder || 0,
       isActive: video.isActive ?? true,
     });
+    setUploadMethod('url');
     setIsDialogOpen(true);
+  };
+
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a valid video file (MP4, WebM, OGG, or MOV)');
+      return;
+    }
+
+    // Validate file size (max 500MB)
+    const maxSize = 500 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('Video file size must be less than 500MB');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(10);
+
+    try {
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        setUploadProgress(30);
+        const base64Data = (reader.result as string).split(',')[1];
+        
+        setUploadProgress(50);
+        const result = await uploadVideoMutation.mutateAsync({
+          fileName: file.name,
+          fileData: base64Data,
+          contentType: file.type,
+        });
+        
+        setUploadProgress(100);
+        setFormData({ ...formData, videoUrl: result.url });
+        toast.success('Video uploaded successfully!');
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read video file');
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error('Failed to upload video');
+      setIsUploading(false);
+    }
+  };
+
+  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a valid image file (JPEG, PNG, WebP, or GIF)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('Image file size must be less than 5MB');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = (reader.result as string).split(',')[1];
+        
+        const result = await uploadVideoMutation.mutateAsync({
+          fileName: `thumbnail-${file.name}`,
+          fileData: base64Data,
+          contentType: file.type,
+        });
+        
+        setFormData({ ...formData, thumbnailUrl: result.url });
+        toast.success('Thumbnail uploaded successfully!');
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read image file');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error('Failed to upload thumbnail');
+    }
   };
 
   const handleSave = async () => {
@@ -132,7 +236,7 @@ export default function VideosAdmin() {
                 Add Video
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingVideo ? 'Edit Video' : 'Add New Video'}</DialogTitle>
               </DialogHeader>
@@ -158,25 +262,112 @@ export default function VideosAdmin() {
                   />
                 </div>
 
+                {/* Video Source Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="videoUrl">Video URL *</Label>
-                  <Input
-                    id="videoUrl"
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
-                  <p className="text-xs text-stone-500">Direct video URL (MP4, WebM) or YouTube/Vimeo link</p>
+                  <Label>Video Source *</Label>
+                  <Tabs value={uploadMethod} onValueChange={(v) => setUploadMethod(v as 'url' | 'upload')}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="url" className="flex items-center gap-2">
+                        <Link className="h-4 w-4" />
+                        URL / Link
+                      </TabsTrigger>
+                      <TabsTrigger value="upload" className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload File
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="url" className="mt-3">
+                      <Input
+                        value={formData.videoUrl}
+                        onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                        placeholder="https://..."
+                      />
+                      <p className="text-xs text-stone-500 mt-1">Direct video URL (MP4, WebM) or YouTube/Vimeo link</p>
+                    </TabsContent>
+                    
+                    <TabsContent value="upload" className="mt-3">
+                      <div className="space-y-3">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleVideoUpload}
+                          accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full h-24 border-dashed"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="h-6 w-6 animate-spin" />
+                              <span>Uploading... {uploadProgress}%</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2">
+                              <Upload className="h-6 w-6" />
+                              <span>Click to upload video</span>
+                              <span className="text-xs text-stone-400">MP4, WebM, OGG, MOV (max 500MB)</span>
+                            </div>
+                          )}
+                        </Button>
+                        
+                        {formData.videoUrl && uploadMethod === 'upload' && (
+                          <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                            ✓ Video uploaded successfully
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                  
+                  {formData.videoUrl && (
+                    <div className="mt-2 p-2 bg-stone-50 rounded text-xs">
+                      <span className="text-stone-500">Current URL: </span>
+                      <span className="text-stone-700 break-all">{formData.videoUrl}</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* Thumbnail Upload */}
                 <div className="space-y-2">
-                  <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnailUrl"
-                    value={formData.thumbnailUrl}
-                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
+                  <Label>Thumbnail</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.thumbnailUrl}
+                      onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                      placeholder="https://... or upload"
+                      className="flex-1"
+                    />
+                    <input
+                      type="file"
+                      ref={thumbnailInputRef}
+                      onChange={handleThumbnailUpload}
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => thumbnailInputRef.current?.click()}
+                    >
+                      <Upload className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {formData.thumbnailUrl && (
+                    <div className="mt-2">
+                      <img 
+                        src={formData.thumbnailUrl} 
+                        alt="Thumbnail preview" 
+                        className="h-20 w-auto rounded border"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -204,7 +395,7 @@ export default function VideosAdmin() {
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+                  <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending || isUploading}>
                     {editingVideo ? 'Update' : 'Create'}
                   </Button>
                 </div>

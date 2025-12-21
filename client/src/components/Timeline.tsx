@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { trpc } from '@/lib/trpc';
 
 // Timeline Component - Olive Branch Justice Theme
-// Features: Chronological events, evidence cards, download functionality, dynamic categories
+// Features: Chronological events, evidence cards, download functionality, dynamic categories, custom colors per event
 
 interface TimelineEvent {
   id: number;
@@ -30,6 +30,9 @@ interface TimelineEvent {
   title: string;
   description: string;
   category: string;
+  customColor?: string | null;
+  customBgColor?: string | null;
+  customTextColor?: string | null;
   tags?: string[];
 }
 
@@ -48,11 +51,11 @@ interface TimelineProps {
 
 // Default category styles (fallback if no dynamic categories)
 const defaultCategoryStyles: Record<string, { label: string; color: string; bg: string; text: string; light: string }> = {
-  foundation: { label: 'Foundation', color: '#5d6d4e', bg: 'bg-[#5d6d4e]', text: 'text-[#5d6d4e]', light: 'bg-[#5d6d4e]/10' },
-  investment_deal: { label: 'Investment Deal', color: '#c4a35a', bg: 'bg-[#c4a35a]', text: 'text-[#c4a35a]', light: 'bg-[#c4a35a]/10' },
-  swift_operations: { label: 'SWIFT Operations', color: '#3b82f6', bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-50' },
-  critical_failure: { label: 'Critical Failure', color: '#722f37', bg: 'bg-[#722f37]', text: 'text-[#722f37]', light: 'bg-[#722f37]/10' },
-  legal_proceedings: { label: 'Legal Proceedings', color: '#9333ea', bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-50' },
+  foundation: { label: 'Foundation', color: '#5d6d4e', bg: '#f5f2eb', text: '#3d3d3d', light: '#5d6d4e1a' },
+  investment_deal: { label: 'Investment Deal', color: '#c4a35a', bg: '#faf8f3', text: '#3d3d3d', light: '#c4a35a1a' },
+  swift_operations: { label: 'SWIFT Operations', color: '#3b82f6', bg: '#eff6ff', text: '#1e3a5f', light: '#3b82f61a' },
+  critical_failure: { label: 'Critical Failure', color: '#722f37', bg: '#fef2f2', text: '#450a0a', light: '#722f371a' },
+  legal_proceedings: { label: 'Legal Proceedings', color: '#9333ea', bg: '#faf5ff', text: '#3b0764', light: '#9333ea1a' },
 };
 
 const evidenceIcons: Record<string, typeof Mail> = {
@@ -147,7 +150,18 @@ function TimelineEventCard({
     { enabled: event.id > 0 }
   );
 
-  const colors = categoryStyles[event.category] || defaultCategoryStyles.foundation;
+  // Get base category colors
+  const baseColors = categoryStyles[event.category] || defaultCategoryStyles.foundation;
+  
+  // Override with custom colors if set
+  const colors = {
+    label: baseColors.label,
+    color: event.customColor || baseColors.color,
+    bg: event.customBgColor || baseColors.bg,
+    text: event.customTextColor || baseColors.text,
+    light: event.customColor ? `${event.customColor}1a` : baseColors.light,
+  };
+
   const isLeft = index % 2 === 0;
   const isCritical = event.category === 'critical_failure';
   
@@ -175,7 +189,11 @@ function TimelineEventCard({
         >
           <div 
             className="rounded-xl p-6 border border-[#c4a35a]/20 relative"
-            style={{ backgroundColor: colors.bg }}
+            style={{ 
+              backgroundColor: colors.bg,
+              borderLeftWidth: event.customColor ? '4px' : undefined,
+              borderLeftColor: event.customColor || undefined,
+            }}
           >
             {/* Critical Badge */}
             {isCritical && (
@@ -194,7 +212,7 @@ function TimelineEventCard({
             </Badge>
             
             {/* Date & Time */}
-            <div className="flex items-center gap-4 text-sm mb-3" style={{ color: `${colors.text}99` }}>
+            <div className="flex items-center gap-4 text-sm mb-3" style={{ color: colors.text, opacity: 0.6 }}>
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {formatDate(event.date)}
@@ -216,7 +234,7 @@ function TimelineEventCard({
             </h3>
             
             {/* Description */}
-            <p className="text-sm leading-relaxed mb-4" style={{ color: `${colors.text}b3` }}>
+            <p className="text-sm leading-relaxed mb-4" style={{ color: colors.text, opacity: 0.7 }}>
               {event.description}
             </p>
 

@@ -138,6 +138,10 @@ export const timelineEvents = mysqlTable("timeline_events", {
   title: varchar("title", { length: 300 }).notNull(),
   description: text("description"),
   category: varchar("category", { length: 100 }).notNull(),
+  // Custom colors for individual event styling
+  customColor: varchar("customColor", { length: 50 }),
+  customBgColor: varchar("customBgColor", { length: 50 }),
+  customTextColor: varchar("customTextColor", { length: 50 }),
   displayOrder: int("displayOrder").default(0),
   isActive: boolean("isActive").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

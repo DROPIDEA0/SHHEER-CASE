@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Clock, Calendar, Link2, X, FileText, Tag, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, Calendar, Link2, X, FileText, Tag, ExternalLink, Palette } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Link } from 'wouter';
@@ -32,6 +33,9 @@ interface TimelineEvent {
   title: string;
   description: string | null;
   category: Category;
+  customColor: string | null;
+  customBgColor: string | null;
+  customTextColor: string | null;
   displayOrder: number | null;
   isActive: boolean | null;
 }
@@ -51,19 +55,23 @@ export default function TimelineAdmin() {
   const [isEvidenceDialogOpen, setIsEvidenceDialogOpen] = useState(false);
   const [selectedEventForEvidence, setSelectedEventForEvidence] = useState<TimelineEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
+  const [useCustomColors, setUseCustomColors] = useState(false);
   const [formData, setFormData] = useState({
     date: '',
     time: '',
     title: '',
     description: '',
     category: 'foundation' as Category,
+    customColor: '',
+    customBgColor: '',
+    customTextColor: '',
     displayOrder: 0,
     isActive: true,
   });
 
   // Use dynamic categories if available, otherwise use defaults
   const categories = dynamicCategories && dynamicCategories.length > 0
-    ? dynamicCategories.map(c => ({ value: c.key, label: c.label, color: c.color || '#5d6d4e' }))
+    ? dynamicCategories.map(c => ({ value: c.key, label: c.label, color: c.color || '#5d6d4e', bgColor: c.bgColor, textColor: c.textColor }))
     : defaultCategories;
 
   const resetForm = () => {
@@ -73,10 +81,14 @@ export default function TimelineAdmin() {
       title: '',
       description: '',
       category: 'foundation',
+      customColor: '',
+      customBgColor: '',
+      customTextColor: '',
       displayOrder: 0,
       isActive: true,
     });
     setEditingEvent(null);
+    setUseCustomColors(false);
   };
 
   const openCreateDialog = () => {
@@ -86,12 +98,17 @@ export default function TimelineAdmin() {
 
   const openEditDialog = (event: TimelineEvent) => {
     setEditingEvent(event);
+    const hasCustomColors = !!(event.customColor || event.customBgColor || event.customTextColor);
+    setUseCustomColors(hasCustomColors);
     setFormData({
       date: event.date,
       time: event.time || '',
       title: event.title,
       description: event.description || '',
       category: event.category,
+      customColor: event.customColor || '',
+      customBgColor: event.customBgColor || '',
+      customTextColor: event.customTextColor || '',
       displayOrder: event.displayOrder || 0,
       isActive: event.isActive ?? true,
     });
@@ -105,14 +122,21 @@ export default function TimelineAdmin() {
 
   const handleSave = async () => {
     try {
+      const dataToSave = {
+        ...formData,
+        customColor: useCustomColors ? (formData.customColor || null) : null,
+        customBgColor: useCustomColors ? (formData.customBgColor || null) : null,
+        customTextColor: useCustomColors ? (formData.customTextColor || null) : null,
+      };
+      
       if (editingEvent) {
         await updateMutation.mutateAsync({
           id: editingEvent.id,
-          data: formData as any,
+          data: dataToSave as any,
         });
         toast.success('Event updated successfully');
       } else {
-        await createMutation.mutateAsync(formData as any);
+        await createMutation.mutateAsync(dataToSave as any);
         toast.success('Event created successfully');
       }
       setIsDialogOpen(false);
@@ -161,17 +185,61 @@ export default function TimelineAdmin() {
     }
   };
 
-  const getCategoryBadge = (category: string) => {
-    const cat = categories.find(c => c.value === category);
+  const getCategoryInfo = (category: string) => {
+    return categories.find(c => c.value === category);
+  };
+
+  const getCategoryBadge = (category: string, event?: TimelineEvent) => {
+    const cat = getCategoryInfo(category);
     if (!cat) return null;
+    
+    // Use custom color if available, otherwise use category color
+    const badgeColor = event?.customColor || cat.color;
+    
     return (
       <Badge 
         className="text-white" 
-        style={{ backgroundColor: cat.color }}
+        style={{ backgroundColor: badgeColor }}
       >
         {cat.label}
       </Badge>
     );
+  };
+
+  const getEventBoxStyle = (event: TimelineEvent) => {
+    const cat = getCategoryInfo(event.category);
+    
+    // If custom colors are set, use them
+    if (event.customBgColor || event.customTextColor) {
+      return {
+        backgroundColor: event.customBgColor || '#f5f5f4',
+        color: event.customTextColor || '#1c1917',
+        borderLeft: event.customColor ? `4px solid ${event.customColor}` : undefined,
+      };
+    }
+    
+    // Otherwise use category colors if available
+    if (cat && 'bgColor' in cat && cat.bgColor) {
+      return {
+        backgroundColor: cat.bgColor,
+        color: 'textColor' in cat ? cat.textColor : '#1c1917',
+      };
+    }
+    
+    return {};
+  };
+
+  // Set default colors based on selected category
+  const handleCategoryChange = (value: Category) => {
+    const cat = getCategoryInfo(value);
+    setFormData({ 
+      ...formData, 
+      category: value,
+      // Suggest category colors as defaults for custom colors
+      customColor: useCustomColors ? (formData.customColor || cat?.color || '') : '',
+      customBgColor: useCustomColors ? (formData.customBgColor || ('bgColor' in (cat || {}) ? (cat as any).bgColor : '') || '') : '',
+      customTextColor: useCustomColors ? (formData.customTextColor || ('textColor' in (cat || {}) ? (cat as any).textColor : '') || '') : '',
+    });
   };
 
   if (isLoading) {
@@ -207,7 +275,7 @@ export default function TimelineAdmin() {
                   Add Event
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingEvent ? 'Edit Event' : 'Create New Event'}</DialogTitle>
                 </DialogHeader>
@@ -258,7 +326,7 @@ export default function TimelineAdmin() {
                     <Label htmlFor="category">Category</Label>
                     <Select
                       value={formData.category}
-                      onValueChange={(value) => setFormData({ ...formData, category: value as Category })}
+                      onValueChange={handleCategoryChange}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
@@ -274,6 +342,130 @@ export default function TimelineAdmin() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {/* Custom Colors Section */}
+                  <div className="border-t pt-4 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Palette className="w-4 h-4 text-[#5d6d4e]" />
+                        <span className="font-medium text-sm">Custom Box Colors</span>
+                      </div>
+                      <Switch
+                        checked={useCustomColors}
+                        onCheckedChange={(checked) => {
+                          setUseCustomColors(checked);
+                          if (checked) {
+                            // Pre-fill with category colors
+                            const cat = getCategoryInfo(formData.category);
+                            setFormData({
+                              ...formData,
+                              customColor: cat?.color || '#5d6d4e',
+                              customBgColor: ('bgColor' in (cat || {}) ? (cat as any).bgColor : '') || '#f5f2eb',
+                              customTextColor: ('textColor' in (cat || {}) ? (cat as any).textColor : '') || '#3d3d3d',
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-stone-500 mb-3">
+                      Enable to override category colors with custom colors for this event
+                    </p>
+                    
+                    {useCustomColors && (
+                      <div className="space-y-3 p-3 bg-stone-50 rounded-lg">
+                        {/* Badge/Accent Color */}
+                        <div>
+                          <Label htmlFor="customColor" className="text-xs">Badge & Accent Color</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              id="customColor"
+                              type="color"
+                              value={formData.customColor || '#5d6d4e'}
+                              onChange={(e) => setFormData({ ...formData, customColor: e.target.value })}
+                              className="w-12 h-8 p-1"
+                            />
+                            <Input
+                              value={formData.customColor}
+                              onChange={(e) => setFormData({ ...formData, customColor: e.target.value })}
+                              placeholder="#5d6d4e"
+                              className="flex-1 h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Background Color */}
+                        <div>
+                          <Label htmlFor="customBgColor" className="text-xs">Box Background Color</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              id="customBgColor"
+                              type="color"
+                              value={formData.customBgColor || '#f5f2eb'}
+                              onChange={(e) => setFormData({ ...formData, customBgColor: e.target.value })}
+                              className="w-12 h-8 p-1"
+                            />
+                            <Input
+                              value={formData.customBgColor}
+                              onChange={(e) => setFormData({ ...formData, customBgColor: e.target.value })}
+                              placeholder="#f5f2eb"
+                              className="flex-1 h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Text Color */}
+                        <div>
+                          <Label htmlFor="customTextColor" className="text-xs">Text Color</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              id="customTextColor"
+                              type="color"
+                              value={formData.customTextColor || '#3d3d3d'}
+                              onChange={(e) => setFormData({ ...formData, customTextColor: e.target.value })}
+                              className="w-12 h-8 p-1"
+                            />
+                            <Input
+                              value={formData.customTextColor}
+                              onChange={(e) => setFormData({ ...formData, customTextColor: e.target.value })}
+                              placeholder="#3d3d3d"
+                              className="flex-1 h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div className="mt-3 pt-3 border-t">
+                          <Label className="text-xs mb-2 block">Preview:</Label>
+                          <div 
+                            className="p-3 rounded-lg"
+                            style={{ 
+                              backgroundColor: formData.customBgColor || '#f5f2eb',
+                              borderLeft: `4px solid ${formData.customColor || '#5d6d4e'}`,
+                            }}
+                          >
+                            <Badge 
+                              className="text-white text-xs mb-2" 
+                              style={{ backgroundColor: formData.customColor || '#5d6d4e' }}
+                            >
+                              {getCategoryInfo(formData.category)?.label || 'Category'}
+                            </Badge>
+                            <p 
+                              className="text-sm font-medium"
+                              style={{ color: formData.customTextColor || '#3d3d3d' }}
+                            >
+                              {formData.title || 'Event Title'}
+                            </p>
+                            <p 
+                              className="text-xs mt-1"
+                              style={{ color: formData.customTextColor || '#3d3d3d', opacity: 0.7 }}
+                            >
+                              {formData.description || 'Event description text...'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -311,7 +503,8 @@ export default function TimelineAdmin() {
                 {events.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-start gap-4 p-4 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
+                    className="flex items-start gap-4 p-4 rounded-lg hover:shadow-md transition-all"
+                    style={getEventBoxStyle(event as TimelineEvent)}
                   >
                     <div className="flex-shrink-0 w-24 text-center">
                       <div className="flex items-center justify-center gap-1 text-stone-500 text-sm">
@@ -327,11 +520,14 @@ export default function TimelineAdmin() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-stone-900 truncate">{event.title}</h3>
-                        {getCategoryBadge(event.category)}
+                        <h3 className="font-medium truncate">{event.title}</h3>
+                        {getCategoryBadge(event.category, event as TimelineEvent)}
+                        {(event.customColor || event.customBgColor) && (
+                          <Palette className="h-3 w-3 text-stone-400" title="Custom colors applied" />
+                        )}
                       </div>
                       {event.description && (
-                        <p className="text-sm text-stone-600 line-clamp-2">{event.description}</p>
+                        <p className="text-sm opacity-80 line-clamp-2">{event.description}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">

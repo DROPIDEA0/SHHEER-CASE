@@ -103,3 +103,10 @@
 - [x] Update server/_core/index.ts to load .env from multiple paths
 - [x] Update diagnostics endpoint with more detailed info
 - [ ] Push updates to GitHub
+
+
+## Admin Panel Fix (Dec 21)
+- [x] Fix admin panel loading issue in development mode
+- [x] Add DEV_ADMIN_USER for local testing without OAuth
+- [x] Admin routes now work when OAUTH_SERVER_URL is not configured
+- [x] Push fix to GitHub

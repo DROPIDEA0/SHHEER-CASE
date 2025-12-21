@@ -1420,8 +1420,8 @@ async function storagePut(relKey, data, contentType = "application/octet-stream"
 
 // server/routers.ts
 import { TRPCError as TRPCError3 } from "@trpc/server";
-var adminProcedure2 = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
+var adminProcedure2 = publicProcedure.use(({ ctx, next }) => {
+  if (!ctx.user || ctx.user.role !== "admin") {
     throw new TRPCError3({ code: "FORBIDDEN", message: "Admin access required" });
   }
   return next({ ctx });
@@ -1747,6 +1747,7 @@ var appRouter = router({
 });
 
 // server/_core/context.ts
+var ADMIN_SESSION_COOKIE2 = "admin_session";
 var DEV_ADMIN_USER = {
   id: 1,
   openId: "dev-admin-user",
@@ -1760,23 +1761,49 @@ var DEV_ADMIN_USER = {
 };
 async function createContext(opts) {
   let user = null;
-  const isDevelopment = !ENV.isProduction;
-  const isOAuthConfigured = !!ENV.oAuthServerUrl;
-  const isAdminRoute = opts.req.path.includes("/admin.") || opts.req.path.includes("/siteProtection.") || opts.req.path.includes("/adminAuth.");
-  if (isDevelopment && !isOAuthConfigured && isAdminRoute) {
-    console.log("[Auth] Development mode: Using dev admin user for admin routes");
-    user = DEV_ADMIN_USER;
-  } else {
+  let adminSession = null;
+  const adminSessionCookie = opts.req.cookies?.[ADMIN_SESSION_COOKIE2];
+  if (adminSessionCookie) {
     try {
-      user = await sdk.authenticateRequest(opts.req);
+      adminSession = JSON.parse(adminSessionCookie);
+      if (adminSession) {
+        user = {
+          id: adminSession.id,
+          openId: `admin-${adminSession.id}`,
+          name: adminSession.username,
+          email: null,
+          loginMethod: "local",
+          role: "admin",
+          // All admin users have admin role
+          createdAt: /* @__PURE__ */ new Date(),
+          updatedAt: /* @__PURE__ */ new Date(),
+          lastSignedIn: /* @__PURE__ */ new Date()
+        };
+      }
     } catch (error) {
-      user = null;
+      console.error("[Auth] Failed to parse admin session cookie:", error);
+    }
+  }
+  if (!user) {
+    const isDevelopment = !ENV.isProduction;
+    const isOAuthConfigured = !!ENV.oAuthServerUrl;
+    const isAdminRoute = opts.req.path.includes("/admin.") || opts.req.path.includes("/siteProtection.") || opts.req.path.includes("/adminAuth.");
+    if (isDevelopment && !isOAuthConfigured && isAdminRoute) {
+      console.log("[Auth] Development mode: Using dev admin user for admin routes");
+      user = DEV_ADMIN_USER;
+    } else {
+      try {
+        user = await sdk.authenticateRequest(opts.req);
+      } catch (error) {
+        user = null;
+      }
     }
   }
   return {
     req: opts.req,
     res: opts.res,
-    user
+    user,
+    adminSession
   };
 }
 

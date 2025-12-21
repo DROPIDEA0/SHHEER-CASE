@@ -11,14 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Pencil, Trash2, UserCog, Shield, Eye, Edit3, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, UserCog, Shield, Eye, Edit3, AlertCircle, Loader2, User, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 const roleLabels: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  super_admin: { label: 'مدير عام', color: 'bg-red-100 text-red-800', icon: <Shield className="h-3 w-3" /> },
-  admin: { label: 'مدير', color: 'bg-orange-100 text-orange-800', icon: <UserCog className="h-3 w-3" /> },
-  editor: { label: 'محرر', color: 'bg-blue-100 text-blue-800', icon: <Edit3 className="h-3 w-3" /> },
-  viewer: { label: 'مشاهد', color: 'bg-gray-100 text-gray-800', icon: <Eye className="h-3 w-3" /> },
+  super_admin: { label: 'Super Admin', color: 'bg-red-100 text-red-800', icon: <Shield className="h-3 w-3" /> },
+  admin: { label: 'Admin', color: 'bg-orange-100 text-orange-800', icon: <UserCog className="h-3 w-3" /> },
+  editor: { label: 'Editor', color: 'bg-blue-100 text-blue-800', icon: <Edit3 className="h-3 w-3" /> },
+  viewer: { label: 'Viewer', color: 'bg-gray-100 text-gray-800', icon: <Eye className="h-3 w-3" /> },
 };
 
 interface AdminUserForm {
@@ -50,7 +50,7 @@ export default function AdminUsersAdmin() {
 
   const createMutation = trpc.adminAuth.createAdminUser.useMutation({
     onSuccess: () => {
-      toast.success('تم إنشاء المستخدم بنجاح');
+      toast.success('User created successfully');
       setIsDialogOpen(false);
       setForm(defaultForm);
       refetch();
@@ -62,7 +62,7 @@ export default function AdminUsersAdmin() {
 
   const updateMutation = trpc.adminAuth.updateAdminUser.useMutation({
     onSuccess: () => {
-      toast.success('تم تحديث المستخدم بنجاح');
+      toast.success('User updated successfully');
       setIsDialogOpen(false);
       setForm(defaultForm);
       setEditingId(null);
@@ -75,7 +75,7 @@ export default function AdminUsersAdmin() {
 
   const deleteMutation = trpc.adminAuth.deleteAdminUser.useMutation({
     onSuccess: () => {
-      toast.success('تم حذف المستخدم بنجاح');
+      toast.success('User deleted successfully');
       setDeleteId(null);
       refetch();
     },
@@ -88,12 +88,12 @@ export default function AdminUsersAdmin() {
     e.preventDefault();
     
     if (!form.username) {
-      toast.error('اسم المستخدم مطلوب');
+      toast.error('Username is required');
       return;
     }
 
     if (!editingId && !form.password) {
-      toast.error('كلمة المرور مطلوبة');
+      toast.error('Password is required');
       return;
     }
 
@@ -101,7 +101,7 @@ export default function AdminUsersAdmin() {
       updateMutation.mutate({
         id: editingId,
         ...form,
-        password: form.password || undefined, // Only update password if provided
+        password: form.password || undefined,
       });
     } else {
       createMutation.mutate(form);
@@ -112,7 +112,7 @@ export default function AdminUsersAdmin() {
     setEditingId(user.id);
     setForm({
       username: user.username,
-      password: '', // Don't show password
+      password: '',
       name: user.name || '',
       email: user.email || '',
       role: user.role,
@@ -138,19 +138,19 @@ export default function AdminUsersAdmin() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900">إدارة المشرفين</h1>
-            <p className="text-stone-500 mt-1">إدارة مستخدمي لوحة التحكم والصلاحيات</p>
+            <h1 className="text-2xl font-bold text-stone-900">Admin Users Management</h1>
+            <p className="text-stone-500 mt-1">Manage admin panel users and their permissions</p>
           </div>
           <Button onClick={openNewDialog} className="bg-olive-700 hover:bg-olive-800">
             <Plus className="h-4 w-4 mr-2" />
-            إضافة مشرف
+            Add Admin User
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>قائمة المشرفين</CardTitle>
-            <CardDescription>جميع المستخدمين الذين لديهم صلاحية الوصول للوحة التحكم</CardDescription>
+            <CardTitle>Admin Users List</CardTitle>
+            <CardDescription>All users with access to the admin panel</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -160,46 +160,51 @@ export default function AdminUsersAdmin() {
             ) : !adminUsers || adminUsers.length === 0 ? (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>لا يوجد مشرفين حتى الآن. قم بإضافة مشرف جديد.</AlertDescription>
+                <AlertDescription>No admin users found. Add a new admin user to get started.</AlertDescription>
               </Alert>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>اسم المستخدم</TableHead>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead>البريد الإلكتروني</TableHead>
-                    <TableHead>الدور</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>آخر دخول</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {adminUsers.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.username}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-stone-400" />
+                          {user.username}
+                        </div>
+                      </TableCell>
                       <TableCell>{user.name || '-'}</TableCell>
                       <TableCell>{user.email || '-'}</TableCell>
                       <TableCell>
                         <Badge className={roleLabels[user.role]?.color || 'bg-gray-100'}>
                           {roleLabels[user.role]?.icon}
-                          <span className="mr-1">{roleLabels[user.role]?.label || user.role}</span>
+                          <span className="ml-1">{roleLabels[user.role]?.label || user.role}</span>
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={user.isActive ? 'default' : 'secondary'}>
-                          {user.isActive ? 'نشط' : 'معطل'}
+                          {user.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {user.lastLogin 
-                          ? new Date(user.lastLogin).toLocaleDateString('ar-SA')
-                          : 'لم يسجل دخول'
+                          ? new Date(user.lastLogin).toLocaleDateString('en-US')
+                          : 'Never'
                         }
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -229,55 +234,67 @@ export default function AdminUsersAdmin() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{editingId ? 'تعديل مشرف' : 'إضافة مشرف جديد'}</DialogTitle>
+              <DialogTitle>{editingId ? 'Edit Admin User' : 'Add New Admin User'}</DialogTitle>
               <DialogDescription>
-                {editingId ? 'قم بتعديل بيانات المشرف' : 'أدخل بيانات المشرف الجديد'}
+                {editingId ? 'Update the admin user details' : 'Enter the new admin user details'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>اسم المستخدم *</Label>
-                <Input
-                  value={form.username}
-                  onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  placeholder="admin"
-                  dir="ltr"
-                />
+                <Label>Username *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                  <Input
+                    value={form.username}
+                    onChange={(e) => setForm({ ...form, username: e.target.value })}
+                    placeholder="admin"
+                    className="pl-10"
+                    dir="ltr"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>{editingId ? 'كلمة المرور الجديدة (اتركها فارغة للإبقاء على القديمة)' : 'كلمة المرور *'}</Label>
-                <Input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="••••••••"
-                  dir="ltr"
-                />
+                <Label>{editingId ? 'New Password (leave empty to keep current)' : 'Password *'}</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                  <Input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    placeholder="••••••••"
+                    className="pl-10"
+                    dir="ltr"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>الاسم الكامل</Label>
+                <Label>Full Name</Label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="أحمد محمد"
+                  placeholder="John Doe"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>البريد الإلكتروني</Label>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="admin@example.com"
-                  dir="ltr"
-                />
+                <Label>Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="admin@example.com"
+                    className="pl-10"
+                    dir="ltr"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>الدور</Label>
+                <Label>Role</Label>
                 <Select
                   value={form.role}
                   onValueChange={(value: any) => setForm({ ...form, role: value })}
@@ -286,16 +303,16 @@ export default function AdminUsersAdmin() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="super_admin">مدير عام - جميع الصلاحيات</SelectItem>
-                    <SelectItem value="admin">مدير - جميع الصلاحيات ما عدا إدارة المشرفين</SelectItem>
-                    <SelectItem value="editor">محرر - تعديل المحتوى فقط</SelectItem>
-                    <SelectItem value="viewer">مشاهد - عرض فقط</SelectItem>
+                    <SelectItem value="super_admin">Super Admin - Full Access</SelectItem>
+                    <SelectItem value="admin">Admin - All except user management</SelectItem>
+                    <SelectItem value="editor">Editor - Content editing only</SelectItem>
+                    <SelectItem value="viewer">Viewer - Read only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex items-center justify-between">
-                <Label>الحالة</Label>
+                <Label>Active Status</Label>
                 <Switch
                   checked={form.isActive}
                   onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
@@ -304,7 +321,7 @@ export default function AdminUsersAdmin() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  إلغاء
+                  Cancel
                 </Button>
                 <Button 
                   type="submit" 
@@ -314,7 +331,7 @@ export default function AdminUsersAdmin() {
                   {(createMutation.isPending || updateMutation.isPending) && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  {editingId ? 'حفظ التعديلات' : 'إضافة'}
+                  {editingId ? 'Save Changes' : 'Add User'}
                 </Button>
               </DialogFooter>
             </form>
@@ -325,14 +342,14 @@ export default function AdminUsersAdmin() {
         <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>تأكيد الحذف</DialogTitle>
+              <DialogTitle>Confirm Deletion</DialogTitle>
               <DialogDescription>
-                هل أنت متأكد من حذف هذا المشرف؟ لا يمكن التراجع عن هذا الإجراء.
+                Are you sure you want to delete this admin user? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteId(null)}>
-                إلغاء
+                Cancel
               </Button>
               <Button 
                 variant="destructive" 
@@ -340,7 +357,7 @@ export default function AdminUsersAdmin() {
                 disabled={deleteMutation.isPending}
               >
                 {deleteMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                حذف
+                Delete
               </Button>
             </DialogFooter>
           </DialogContent>

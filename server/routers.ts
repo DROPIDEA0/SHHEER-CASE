@@ -7,9 +7,10 @@ import * as db from "./db";
 import { storagePut } from "./storage";
 import { TRPCError } from "@trpc/server";
 
-// Admin-only procedure
-const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== 'admin') {
+// Admin-only procedure - supports both OAuth and local admin authentication
+const adminProcedure = publicProcedure.use(({ ctx, next }) => {
+  // Check if user is authenticated (either via OAuth or local admin session)
+  if (!ctx.user || ctx.user.role !== 'admin') {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
   }
   return next({ ctx });

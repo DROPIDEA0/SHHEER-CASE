@@ -49,7 +49,7 @@ export default function SiteProtectionAdmin() {
 
   const updateProtectionMutation = trpc.siteProtection.updateSettings.useMutation({
     onSuccess: () => {
-      toast.success('تم تحديث إعدادات الحماية بنجاح');
+      toast.success('Protection settings updated successfully');
       refetchProtection();
     },
     onError: (err) => {
@@ -59,7 +59,7 @@ export default function SiteProtectionAdmin() {
 
   const createUserMutation = trpc.siteProtection.createAccessUser.useMutation({
     onSuccess: () => {
-      toast.success('تم إنشاء المستخدم بنجاح');
+      toast.success('User created successfully');
       setIsDialogOpen(false);
       setForm(defaultForm);
       refetch();
@@ -71,7 +71,7 @@ export default function SiteProtectionAdmin() {
 
   const updateUserMutation = trpc.siteProtection.updateAccessUser.useMutation({
     onSuccess: () => {
-      toast.success('تم تحديث المستخدم بنجاح');
+      toast.success('User updated successfully');
       setIsDialogOpen(false);
       setForm(defaultForm);
       setEditingId(null);
@@ -84,7 +84,7 @@ export default function SiteProtectionAdmin() {
 
   const deleteUserMutation = trpc.siteProtection.deleteAccessUser.useMutation({
     onSuccess: () => {
-      toast.success('تم حذف المستخدم بنجاح');
+      toast.success('User deleted successfully');
       setDeleteId(null);
       refetch();
     },
@@ -104,12 +104,12 @@ export default function SiteProtectionAdmin() {
     e.preventDefault();
     
     if (!form.username) {
-      toast.error('اسم المستخدم مطلوب');
+      toast.error('Username is required');
       return;
     }
 
     if (!editingId && !form.password) {
-      toast.error('كلمة المرور مطلوبة');
+      toast.error('Password is required');
       return;
     }
 
@@ -151,8 +151,8 @@ export default function SiteProtectionAdmin() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">حماية الموقع</h1>
-          <p className="text-stone-500 mt-1">تأمين الموقع بكلمة مرور وإدارة المستخدمين المصرح لهم</p>
+          <h1 className="text-2xl font-bold text-stone-900">Site Protection</h1>
+          <p className="text-stone-500 mt-1">Secure the site with password protection and manage authorized users</p>
         </div>
 
         {/* Protection Settings */}
@@ -160,10 +160,10 @@ export default function SiteProtectionAdmin() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              إعدادات الحماية
+              Protection Settings
             </CardTitle>
             <CardDescription>
-              عند تفعيل الحماية، لن يتمكن أي شخص من تصفح الموقع إلا بإدخال اسم مستخدم وكلمة مرور
+              When protection is enabled, visitors must enter a username and password to access the site
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -176,12 +176,12 @@ export default function SiteProtectionAdmin() {
                 )}
                 <div>
                   <p className="font-medium text-stone-900">
-                    {protectionEnabled ? 'الحماية مفعلة' : 'الحماية معطلة'}
+                    {protectionEnabled ? 'Protection Enabled' : 'Protection Disabled'}
                   </p>
                   <p className="text-sm text-stone-500">
                     {protectionEnabled 
-                      ? 'الموقع محمي بكلمة مرور' 
-                      : 'الموقع متاح للجميع'
+                      ? 'Site is password protected' 
+                      : 'Site is publicly accessible'
                     }
                   </p>
                 </div>
@@ -193,11 +193,11 @@ export default function SiteProtectionAdmin() {
             </div>
 
             <div className="space-y-2">
-              <Label>رسالة صفحة تسجيل الدخول (اختياري)</Label>
+              <Label>Login Page Message (Optional)</Label>
               <Textarea
                 value={protectionMessage}
                 onChange={(e) => setProtectionMessage(e.target.value)}
-                placeholder="هذا الموقع محمي. يرجى تسجيل الدخول للمتابعة."
+                placeholder="This site is protected. Please login to continue."
                 rows={3}
               />
             </div>
@@ -210,7 +210,7 @@ export default function SiteProtectionAdmin() {
               {updateProtectionMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              حفظ الإعدادات
+              Save Settings
             </Button>
           </CardContent>
         </Card>
@@ -220,12 +220,12 @@ export default function SiteProtectionAdmin() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>المستخدمون المصرح لهم</CardTitle>
-                <CardDescription>المستخدمون الذين يمكنهم الوصول للموقع عند تفعيل الحماية</CardDescription>
+                <CardTitle>Authorized Users</CardTitle>
+                <CardDescription>Users who can access the site when protection is enabled</CardDescription>
               </div>
               <Button onClick={openNewDialog} className="bg-olive-700 hover:bg-olive-800">
                 <Plus className="h-4 w-4 mr-2" />
-                إضافة مستخدم
+                Add User
               </Button>
             </div>
           </CardHeader>
@@ -238,18 +238,18 @@ export default function SiteProtectionAdmin() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  لا يوجد مستخدمين حتى الآن. قم بإضافة مستخدمين للسماح لهم بالوصول للموقع عند تفعيل الحماية.
+                  No authorized users yet. Add users to allow them access when site protection is enabled.
                 </AlertDescription>
               </Alert>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>اسم المستخدم</TableHead>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>تاريخ الإنشاء</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -264,14 +264,14 @@ export default function SiteProtectionAdmin() {
                       <TableCell>{user.name || '-'}</TableCell>
                       <TableCell>
                         <Badge variant={user.isActive ? 'default' : 'secondary'}>
-                          {user.isActive ? 'نشط' : 'معطل'}
+                          {user.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(user.createdAt).toLocaleDateString('ar-SA')}
+                        {new Date(user.createdAt).toLocaleDateString('en-US')}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -301,14 +301,14 @@ export default function SiteProtectionAdmin() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{editingId ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}</DialogTitle>
+              <DialogTitle>{editingId ? 'Edit User' : 'Add New User'}</DialogTitle>
               <DialogDescription>
-                {editingId ? 'قم بتعديل بيانات المستخدم' : 'أدخل بيانات المستخدم الجديد'}
+                {editingId ? 'Update the user details' : 'Enter the new user details'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>اسم المستخدم *</Label>
+                <Label>Username *</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                   <Input
@@ -323,7 +323,7 @@ export default function SiteProtectionAdmin() {
 
               <div className="space-y-2">
                 <Label>
-                  {editingId ? 'كلمة المرور الجديدة (اتركها فارغة للإبقاء على القديمة)' : 'كلمة المرور *'}
+                  {editingId ? 'New Password (leave empty to keep current)' : 'Password *'}
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
@@ -339,16 +339,16 @@ export default function SiteProtectionAdmin() {
               </div>
 
               <div className="space-y-2">
-                <Label>الاسم (اختياري)</Label>
+                <Label>Name (Optional)</Label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="الاسم الكامل"
+                  placeholder="Full Name"
                 />
               </div>
 
               <div className="flex items-center justify-between">
-                <Label>الحالة</Label>
+                <Label>Active Status</Label>
                 <Switch
                   checked={form.isActive}
                   onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
@@ -357,7 +357,7 @@ export default function SiteProtectionAdmin() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  إلغاء
+                  Cancel
                 </Button>
                 <Button 
                   type="submit" 
@@ -367,7 +367,7 @@ export default function SiteProtectionAdmin() {
                   {(createUserMutation.isPending || updateUserMutation.isPending) && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  {editingId ? 'حفظ التعديلات' : 'إضافة'}
+                  {editingId ? 'Save Changes' : 'Add User'}
                 </Button>
               </DialogFooter>
             </form>
@@ -378,14 +378,14 @@ export default function SiteProtectionAdmin() {
         <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>تأكيد الحذف</DialogTitle>
+              <DialogTitle>Confirm Deletion</DialogTitle>
               <DialogDescription>
-                هل أنت متأكد من حذف هذا المستخدم؟ لن يتمكن من الوصول للموقع بعد ذلك.
+                Are you sure you want to delete this user? They will no longer be able to access the site.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteId(null)}>
-                إلغاء
+                Cancel
               </Button>
               <Button 
                 variant="destructive" 
@@ -393,7 +393,7 @@ export default function SiteProtectionAdmin() {
                 disabled={deleteUserMutation.isPending}
               >
                 {deleteUserMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                حذف
+                Delete
               </Button>
             </DialogFooter>
           </DialogContent>

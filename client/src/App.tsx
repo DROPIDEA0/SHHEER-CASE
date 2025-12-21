@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -25,8 +26,12 @@ import AdminLogin from "./pages/admin/AdminLogin";
 function Router() {
   return (
     <Switch>
-      {/* Public Routes */}
-      <Route path={"/"} component={Home} />
+      {/* Public Routes - Protected by Site Protection */}
+      <Route path={"/"}>
+        <ProtectedRoute>
+          <Home />
+        </ProtectedRoute>
+      </Route>
       
       {/* Admin Login */}
       <Route path={"/admin/login"} component={AdminLogin} />

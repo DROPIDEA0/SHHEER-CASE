@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
@@ -7,8 +8,15 @@ import EvidenceGallery from '@/components/EvidenceGallery';
 import VideoSection from '@/components/VideoSection';
 import Footer from '@/components/Footer';
 import { Skeleton } from '@/components/ui/skeleton';
+import SiteLogin from './SiteLogin';
 
 export default function Home() {
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+
+  // Check site protection settings
+  const { data: protectionSettings, isLoading: protectionLoading } = trpc.siteProtection.getSettings.useQuery();
+  const { data: accessCheck, isLoading: accessLoading, refetch: refetchAccess } = trpc.siteProtection.checkAccess.useQuery();
+
   // Fetch all public data
   const { data: headerData, isLoading: headerLoading } = trpc.public.getHeaderContent.useQuery();
   const { data: heroData, isLoading: heroLoading } = trpc.public.getHeroSection.useQuery();
@@ -17,6 +25,49 @@ export default function Home() {
   const { data: evidenceData, isLoading: evidenceLoading } = trpc.public.getEvidenceItems.useQuery();
   const { data: videosData, isLoading: videosLoading } = trpc.public.getVideos.useQuery();
   const { data: footerData, isLoading: footerLoading } = trpc.public.getFooterContent.useQuery();
+
+  // Determine if user has access
+  useEffect(() => {
+    if (!protectionLoading && !accessLoading) {
+      // If protection is not enabled, allow access
+      if (!protectionSettings?.isEnabled) {
+        setHasAccess(true);
+      } else {
+        // Protection is enabled, check if user has access
+        setHasAccess(accessCheck?.hasAccess || false);
+      }
+    }
+  }, [protectionSettings, accessCheck, protectionLoading, accessLoading]);
+
+  const handleLoginSuccess = () => {
+    refetchAccess().then(() => {
+      setHasAccess(true);
+    });
+  };
+
+  // Show loading while checking protection status
+  if (protectionLoading || accessLoading || hasAccess === null) {
+    return (
+      <div className="min-h-screen bg-stone-50">
+        <div className="h-16 bg-white border-b" />
+        <div className="container py-20">
+          <Skeleton className="h-64 w-full mb-8" />
+          <Skeleton className="h-96 w-full mb-8" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // If protection is enabled and user doesn't have access, show login
+  if (protectionSettings?.isEnabled && !hasAccess) {
+    return (
+      <SiteLogin 
+        message={protectionSettings.message || undefined}
+        onSuccess={handleLoginSuccess}
+      />
+    );
+  }
 
   const isLoading = headerLoading || heroLoading || partiesLoading || timelineLoading || evidenceLoading || videosLoading || footerLoading;
 

@@ -30,7 +30,7 @@ export async function createContext(
   // In development mode without OAuth configured, use dev admin user for admin routes
   const isDevelopment = !ENV.isProduction;
   const isOAuthConfigured = !!ENV.oAuthServerUrl;
-  const isAdminRoute = opts.req.path.includes('/admin.');
+  const isAdminRoute = opts.req.path.includes('/admin.') || opts.req.path.includes('/siteProtection.') || opts.req.path.includes('/adminAuth.');
 
   if (isDevelopment && !isOAuthConfigured && isAdminRoute) {
     console.log("[Auth] Development mode: Using dev admin user for admin routes");

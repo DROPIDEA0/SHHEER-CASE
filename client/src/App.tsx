@@ -18,12 +18,18 @@ import VideosAdmin from "./pages/admin/VideosAdmin";
 import PartiesAdmin from "./pages/admin/PartiesAdmin";
 import FooterAdmin from "./pages/admin/FooterAdmin";
 import SettingsAdmin from "./pages/admin/SettingsAdmin";
+import AdminUsersAdmin from "./pages/admin/AdminUsersAdmin";
+import SiteProtectionAdmin from "./pages/admin/SiteProtectionAdmin";
+import AdminLogin from "./pages/admin/AdminLogin";
 
 function Router() {
   return (
     <Switch>
       {/* Public Routes */}
       <Route path={"/"} component={Home} />
+      
+      {/* Admin Login */}
+      <Route path={"/admin/login"} component={AdminLogin} />
       
       {/* Admin Routes */}
       <Route path={"/admin"} component={Dashboard} />
@@ -38,6 +44,8 @@ function Router() {
       <Route path={"/admin/parties"} component={PartiesAdmin} />
       <Route path={"/admin/footer"} component={FooterAdmin} />
       <Route path={"/admin/settings"} component={SettingsAdmin} />
+      <Route path={"/admin/users"} component={AdminUsersAdmin} />
+      <Route path={"/admin/site-protection"} component={SiteProtectionAdmin} />
       
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

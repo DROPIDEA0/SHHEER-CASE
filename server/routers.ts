@@ -15,9 +15,145 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+// Admin session cookie name
+const ADMIN_SESSION_COOKIE = 'admin_session';
+const SITE_ACCESS_COOKIE = 'site_access';
+
 export const appRouter = router({
   system: systemRouter,
   
+  // ============ ADMIN AUTH API ============
+  adminAuth: router({
+    login: publicProcedure
+      .input(z.object({ username: z.string(), password: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.verifyAdminPassword(input.username, input.password);
+        if (!user) {
+          return { success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+        }
+        
+        // Set admin session cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(ADMIN_SESSION_COOKIE, JSON.stringify({ id: user.id, username: user.username, role: user.role }), {
+          ...cookieOptions,
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+        
+        return { success: true, user: { id: user.id, username: user.username, name: user.name, role: user.role } };
+      }),
+    
+    logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(ADMIN_SESSION_COOKIE, { ...cookieOptions, maxAge: -1 });
+      return { success: true };
+    }),
+    
+    me: publicProcedure.query(({ ctx }) => {
+      const sessionCookie = ctx.req.cookies?.[ADMIN_SESSION_COOKIE];
+      if (!sessionCookie) return null;
+      try {
+        return JSON.parse(sessionCookie);
+      } catch {
+        return null;
+      }
+    }),
+    
+    getAdminUsers: adminProcedure.query(() => db.getAdminUsers()),
+    
+    createAdminUser: adminProcedure
+      .input(z.object({
+        username: z.string(),
+        password: z.string(),
+        name: z.string().optional(),
+        email: z.string().optional(),
+        role: z.enum(['super_admin', 'admin', 'editor', 'viewer']).default('editor'),
+        isActive: z.boolean().default(true),
+      }))
+      .mutation(({ input }) => db.createAdminUser(input)),
+    
+    updateAdminUser: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        username: z.string().optional(),
+        password: z.string().optional(),
+        name: z.string().optional(),
+        email: z.string().optional(),
+        role: z.enum(['super_admin', 'admin', 'editor', 'viewer']).optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => db.updateAdminUser(input.id, input)),
+    
+    deleteAdminUser: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deleteAdminUser(input.id)),
+  }),
+
+  // ============ SITE PROTECTION API ============
+  siteProtection: router({
+    getSettings: publicProcedure.query(() => db.getSiteProtection()),
+    
+    updateSettings: adminProcedure
+      .input(z.object({
+        isEnabled: z.boolean().optional(),
+        message: z.string().optional(),
+      }))
+      .mutation(({ input }) => db.upsertSiteProtection(input)),
+    
+    getAccessUsers: adminProcedure.query(() => db.getSiteAccessUsers()),
+    
+    createAccessUser: adminProcedure
+      .input(z.object({
+        username: z.string(),
+        password: z.string(),
+        name: z.string().optional(),
+        isActive: z.boolean().default(true),
+      }))
+      .mutation(({ input }) => db.createSiteAccessUser(input)),
+    
+    updateAccessUser: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        username: z.string().optional(),
+        password: z.string().optional(),
+        name: z.string().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => db.updateSiteAccessUser(input.id, input)),
+    
+    deleteAccessUser: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deleteSiteAccessUser(input.id)),
+    
+    login: publicProcedure
+      .input(z.object({ username: z.string(), password: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.verifySiteAccessPassword(input.username, input.password);
+        if (!user) {
+          return { success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+        }
+        
+        // Set site access cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(SITE_ACCESS_COOKIE, JSON.stringify({ id: user.id, username: user.username }), {
+          ...cookieOptions,
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+        
+        return { success: true };
+      }),
+    
+    checkAccess: publicProcedure.query(({ ctx }) => {
+      const sessionCookie = ctx.req.cookies?.[SITE_ACCESS_COOKIE];
+      if (!sessionCookie) return { hasAccess: false };
+      try {
+        const session = JSON.parse(sessionCookie);
+        return { hasAccess: true, user: session };
+      } catch {
+        return { hasAccess: false };
+      }
+    }),
+  }),
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

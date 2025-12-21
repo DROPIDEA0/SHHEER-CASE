@@ -328,5 +328,58 @@ INSERT INTO timeline_event_evidence (eventId, evidenceId, displayOrder) VALUES
 (8, 5, 1);
 
 -- =============================================
+-- NEW TABLES: Admin Users & Site Protection
+-- =============================================
+
+-- Admin Users Table (Custom Auth)
+CREATE TABLE IF NOT EXISTS `admin_users` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`username` varchar(100) NOT NULL,
+	`password` varchar(255) NOT NULL,
+	`name` varchar(200),
+	`email` varchar(320),
+	`adminRole` enum('super_admin','admin','editor','viewer') NOT NULL DEFAULT 'editor',
+	`permissions` json,
+	`isActive` boolean DEFAULT true,
+	`lastLogin` timestamp NULL,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `admin_users_id` PRIMARY KEY(`id`),
+	CONSTRAINT `admin_users_username_unique` UNIQUE(`username`)
+);
+
+-- Site Access Users Table (Site Protection)
+CREATE TABLE IF NOT EXISTS `site_access_users` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`username` varchar(100) NOT NULL,
+	`password` varchar(255) NOT NULL,
+	`name` varchar(200),
+	`isActive` boolean DEFAULT true,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `site_access_users_id` PRIMARY KEY(`id`),
+	CONSTRAINT `site_access_users_username_unique` UNIQUE(`username`)
+);
+
+-- Site Protection Settings
+CREATE TABLE IF NOT EXISTS `site_protection` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`isEnabled` boolean DEFAULT false,
+	`message` text,
+	`createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `site_protection_id` PRIMARY KEY(`id`)
+);
+
+-- Insert default admin user (username: admin, password: admin123)
+-- Password hash is bcrypt with 10 rounds
+INSERT INTO admin_users (username, password, name, adminRole, isActive) VALUES 
+('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjqQBrkHx3ih6rJLWYPVBFNjPJxITm', 'المدير العام', 'super_admin', true);
+
+-- Insert default site protection settings (disabled)
+INSERT INTO site_protection (isEnabled, message) VALUES 
+(false, 'هذا الموقع محمي. يرجى تسجيل الدخول للمتابعة.');
+
+-- =============================================
 -- DONE! Database is ready with all updates.
 -- =============================================

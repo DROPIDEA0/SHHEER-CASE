@@ -160,6 +160,23 @@ export default function Footer({
           </div>
         </div>
       </div>
+
+      {/* Technical Support Credit */}
+      <div className="border-t border-white/10 bg-[#2d2d2d]">
+        <div className="container py-3">
+          <p className="text-center text-sm text-white/40">
+            الدعم التقني والتصميم من قبل شركة{' '}
+            <a 
+              href="https://dropidea.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[#c4a35a] hover:text-[#d4b36a] font-medium transition-colors"
+            >
+              دروب أيديا
+            </a>
+          </p>
+        </div>
+      </div>
     </footer>
   );
 }

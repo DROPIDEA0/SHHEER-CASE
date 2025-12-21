@@ -149,7 +149,7 @@ export async function getDb() {
     testConnection.release();
     
     // Create drizzle instance with the pool
-    _db = drizzle({ client: _connectionPool });
+    _db = drizzle({ client: _connectionPool }) as any;
     console.log("[Database] Drizzle instance created successfully");
     
     return _db;
@@ -642,4 +642,197 @@ export async function getEvidenceForEvent(eventId: number) {
   const items = await db.select().from(evidenceItems).where(inArray(evidenceItems.id, evidenceIds));
   
   return items;
+}
+
+
+// ============ ADMIN USERS ============
+import { adminUsers, InsertAdminUser, siteAccessUsers, InsertSiteAccessUser, siteProtection, InsertSiteProtection } from "../drizzle/schema";
+import bcrypt from 'bcryptjs';
+
+export async function getAdminUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: adminUsers.id,
+    username: adminUsers.username,
+    name: adminUsers.name,
+    email: adminUsers.email,
+    role: adminUsers.role,
+    isActive: adminUsers.isActive,
+    lastLogin: adminUsers.lastLogin,
+    createdAt: adminUsers.createdAt,
+  }).from(adminUsers);
+}
+
+export async function getAdminUserByUsername(username: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(adminUsers).where(eq(adminUsers.username, username)).limit(1);
+  return result[0] || null;
+}
+
+export async function getAdminUserById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(adminUsers).where(eq(adminUsers.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function createAdminUser(data: { username: string; password: string; name?: string; email?: string; role?: 'super_admin' | 'admin' | 'editor' | 'viewer'; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+  
+  await db.insert(adminUsers).values({
+    username: data.username,
+    password: hashedPassword,
+    name: data.name || null,
+    email: data.email || null,
+    role: data.role || 'editor',
+    isActive: data.isActive ?? true,
+  });
+  
+  return getAdminUserByUsername(data.username);
+}
+
+export async function updateAdminUser(id: number, data: { username?: string; password?: string; name?: string; email?: string; role?: 'super_admin' | 'admin' | 'editor' | 'viewer'; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const updateData: any = { ...data };
+  
+  if (data.password) {
+    updateData.password = await bcrypt.hash(data.password, 10);
+  } else {
+    delete updateData.password;
+  }
+  
+  await db.update(adminUsers).set(updateData).where(eq(adminUsers.id, id));
+  return getAdminUserById(id);
+}
+
+export async function deleteAdminUser(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(adminUsers).where(eq(adminUsers.id, id));
+  return true;
+}
+
+export async function updateAdminUserLastLogin(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(adminUsers).set({ lastLogin: new Date() }).where(eq(adminUsers.id, id));
+}
+
+export async function verifyAdminPassword(username: string, password: string) {
+  const user = await getAdminUserByUsername(username);
+  if (!user || !user.isActive) return null;
+  
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) return null;
+  
+  await updateAdminUserLastLogin(user.id);
+  return user;
+}
+
+// ============ SITE ACCESS USERS ============
+export async function getSiteAccessUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: siteAccessUsers.id,
+    username: siteAccessUsers.username,
+    name: siteAccessUsers.name,
+    isActive: siteAccessUsers.isActive,
+    createdAt: siteAccessUsers.createdAt,
+  }).from(siteAccessUsers);
+}
+
+export async function getSiteAccessUserByUsername(username: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(siteAccessUsers).where(eq(siteAccessUsers.username, username)).limit(1);
+  return result[0] || null;
+}
+
+export async function getSiteAccessUserById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(siteAccessUsers).where(eq(siteAccessUsers.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function createSiteAccessUser(data: { username: string; password: string; name?: string; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+  
+  await db.insert(siteAccessUsers).values({
+    username: data.username,
+    password: hashedPassword,
+    name: data.name || null,
+    isActive: data.isActive ?? true,
+  });
+  
+  return getSiteAccessUserByUsername(data.username);
+}
+
+export async function updateSiteAccessUser(id: number, data: { username?: string; password?: string; name?: string; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const updateData: any = { ...data };
+  
+  if (data.password) {
+    updateData.password = await bcrypt.hash(data.password, 10);
+  } else {
+    delete updateData.password;
+  }
+  
+  await db.update(siteAccessUsers).set(updateData).where(eq(siteAccessUsers.id, id));
+  return getSiteAccessUserById(id);
+}
+
+export async function deleteSiteAccessUser(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(siteAccessUsers).where(eq(siteAccessUsers.id, id));
+  return true;
+}
+
+export async function verifySiteAccessPassword(username: string, password: string) {
+  const user = await getSiteAccessUserByUsername(username);
+  if (!user || !user.isActive) return null;
+  
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) return null;
+  
+  return user;
+}
+
+// ============ SITE PROTECTION ============
+export async function getSiteProtection() {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(siteProtection).limit(1);
+  return result[0] || null;
+}
+
+export async function upsertSiteProtection(data: { isEnabled?: boolean; message?: string }) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const existing = await getSiteProtection();
+  if (existing) {
+    await db.update(siteProtection).set(data).where(eq(siteProtection.id, existing.id));
+    return getSiteProtection();
+  } else {
+    await db.insert(siteProtection).values({
+      isEnabled: data.isEnabled ?? false,
+      message: data.message || null,
+    });
+    return getSiteProtection();
+  }
 }

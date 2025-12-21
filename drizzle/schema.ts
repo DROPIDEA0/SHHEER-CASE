@@ -264,3 +264,53 @@ export const timelineEventEvidence = mysqlTable("timeline_event_evidence", {
 
 export type TimelineEventEvidence = typeof timelineEventEvidence.$inferSelect;
 export type InsertTimelineEventEvidence = typeof timelineEventEvidence.$inferInsert;
+
+/**
+ * Admin Users - Custom admin authentication system
+ */
+export const adminUsers = mysqlTable("admin_users", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(), // Hashed password
+  name: varchar("name", { length: 200 }),
+  email: varchar("email", { length: 320 }),
+  role: mysqlEnum("adminRole", ["super_admin", "admin", "editor", "viewer"]).default("editor").notNull(),
+  permissions: json("permissions"), // Custom permissions JSON
+  isActive: boolean("isActive").default(true),
+  lastLogin: timestamp("lastLogin"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = typeof adminUsers.$inferInsert;
+
+/**
+ * Site Access Users - Users who can access protected site
+ */
+export const siteAccessUsers = mysqlTable("site_access_users", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(), // Hashed password
+  name: varchar("name", { length: 200 }),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SiteAccessUser = typeof siteAccessUsers.$inferSelect;
+export type InsertSiteAccessUser = typeof siteAccessUsers.$inferInsert;
+
+/**
+ * Site Protection Settings - Enable/disable site protection
+ */
+export const siteProtection = mysqlTable("site_protection", {
+  id: int("id").autoincrement().primaryKey(),
+  isEnabled: boolean("isEnabled").default(false),
+  message: text("message"), // Custom message shown on login page
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SiteProtection = typeof siteProtection.$inferSelect;
+export type InsertSiteProtection = typeof siteProtection.$inferInsert;

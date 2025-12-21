@@ -206,7 +206,7 @@ export default function TimelineAdmin() {
     );
   };
 
-  const getEventBoxStyle = (event: TimelineEvent) => {
+  const getEventBoxStyle = (event: TimelineEvent): React.CSSProperties => {
     const cat = getCategoryInfo(event.category);
     
     // If custom colors are set, use them
@@ -221,8 +221,8 @@ export default function TimelineAdmin() {
     // Otherwise use category colors if available
     if (cat && 'bgColor' in cat && cat.bgColor) {
       return {
-        backgroundColor: cat.bgColor,
-        color: 'textColor' in cat ? cat.textColor : '#1c1917',
+        backgroundColor: String(cat.bgColor),
+        color: 'textColor' in cat ? String(cat.textColor) : '#1c1917',
       };
     }
     
@@ -523,7 +523,7 @@ export default function TimelineAdmin() {
                         <h3 className="font-medium truncate">{event.title}</h3>
                         {getCategoryBadge(event.category, event as TimelineEvent)}
                         {(event.customColor || event.customBgColor) && (
-                          <Palette className="h-3 w-3 text-stone-400" title="Custom colors applied" />
+                          <Palette className="h-3 w-3 text-stone-400" />
                         )}
                       </div>
                       {event.description && (

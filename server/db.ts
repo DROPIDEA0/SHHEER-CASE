@@ -15,7 +15,8 @@ import {
   footerContent, InsertFooterContent,
   timelineCategories, InsertTimelineCategory,
   evidenceCategories, InsertEvidenceCategory,
-  timelineEventEvidence, InsertTimelineEventEvidence
+  timelineEventEvidence, InsertTimelineEventEvidence,
+  adminUsers, siteAccessUsers, siteProtection, adminSettings
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -835,4 +836,65 @@ export async function upsertSiteProtection(data: { isEnabled?: boolean; message?
     });
     return getSiteProtection();
   }
+}
+
+// ============ ADMIN SETTINGS ============
+
+export async function getAdminSettings() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminSettings);
+}
+
+export async function getAdminSetting(key: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, key)).limit(1);
+  return result[0] || null;
+}
+
+export async function updateAdminSetting(key: string, value: string, type: string = 'text') {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const existing = await getAdminSetting(key);
+  if (existing) {
+    await db.update(adminSettings).set({ settingValue: value, settingType: type }).where(eq(adminSettings.settingKey, key));
+  } else {
+    await db.insert(adminSettings).values({
+      settingKey: key,
+      settingValue: value,
+      settingType: type,
+    });
+  }
+  return getAdminSetting(key);
+}
+
+export async function changeAdminPassword(adminId: number, currentPassword: string, newPassword: string) {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  
+  // Get admin user
+  const result = await db.select().from(adminUsers).where(eq(adminUsers.id, adminId)).limit(1);
+  const admin = result[0];
+  if (!admin) throw new Error('Admin user not found');
+  
+  // Verify current password
+  const isValid = await bcrypt.compare(currentPassword, admin.password);
+  if (!isValid) throw new Error('كلمة المرور الحالية غير صحيحة');
+  
+  // Hash new password
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  
+  // Update password
+  await db.update(adminUsers).set({ password: hashedPassword }).where(eq(adminUsers.id, adminId));
+  return true;
+}
+
+export async function uploadAdminLogo(imageData: string) {
+  return updateAdminSetting('admin_logo', imageData, 'image');
+}
+
+export async function uploadFavicon(imageData: string) {
+  return updateAdminSetting('favicon', imageData, 'image');
 }

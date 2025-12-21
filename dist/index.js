@@ -106,6 +106,10 @@ var timelineEvents = mysqlTable("timeline_events", {
   title: varchar("title", { length: 300 }).notNull(),
   description: text("description"),
   category: varchar("category", { length: 100 }).notNull(),
+  // Custom colors for individual event styling
+  customColor: varchar("customColor", { length: 50 }),
+  customBgColor: varchar("customBgColor", { length: 50 }),
+  customTextColor: varchar("customTextColor", { length: 50 }),
   displayOrder: int("displayOrder").default(0),
   isActive: boolean("isActive").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -183,6 +187,47 @@ var timelineEventEvidence = mysqlTable("timeline_event_evidence", {
   displayOrder: int("displayOrder").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
+var adminUsers = mysqlTable("admin_users", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  // Hashed password
+  name: varchar("name", { length: 200 }),
+  email: varchar("email", { length: 320 }),
+  role: mysqlEnum("adminRole", ["super_admin", "admin", "editor", "viewer"]).default("editor").notNull(),
+  permissions: json("permissions"),
+  // Custom permissions JSON
+  isActive: boolean("isActive").default(true),
+  lastLogin: timestamp("lastLogin"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+});
+var siteAccessUsers = mysqlTable("site_access_users", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  // Hashed password
+  name: varchar("name", { length: 200 }),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+});
+var siteProtection = mysqlTable("site_protection", {
+  id: int("id").autoincrement().primaryKey(),
+  isEnabled: boolean("isEnabled").default(false),
+  message: text("message"),
+  // Custom message shown on login page
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+});
+var adminSettings = mysqlTable("admin_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 100 }).notNull().unique(),
+  settingValue: text("settingValue"),
+  settingType: varchar("settingType", { length: 50 }).default("text"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+});
 
 // server/_core/env.ts
 var ENV = {
@@ -196,131 +241,112 @@ var ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? ""
 };
 
-// server/_core/config.production.ts
-var HOSTINGER_DB = {
-  host: "127.0.0.1",
-  port: "3306",
-  user: "u713123409_shheer_case",
-  password: "Downy1441680798402930",
-  database: "u713123409_shheer_case"
-};
-var HARDCODED_DATABASE_URL = `mysql://${HOSTINGER_DB.user}:${HOSTINGER_DB.password}@${HOSTINGER_DB.host}:${HOSTINGER_DB.port}/${HOSTINGER_DB.database}`;
-var PRODUCTION_CONFIG = {
-  DATABASE_URL: HARDCODED_DATABASE_URL,
-  DB_HOST: HOSTINGER_DB.host,
-  DB_PORT: HOSTINGER_DB.port,
-  DB_USER: HOSTINGER_DB.user,
-  DB_PASSWORD: HOSTINGER_DB.password,
-  DB_NAME: HOSTINGER_DB.database,
-  JWT_SECRET: "3f9c8e7a1d4b6a0e9c2f5b8d7a6c4e1f0b9a8d5c7e2f4a6b1c9e8d0f5a2",
-  NODE_ENV: "production"
-};
-function getDatabaseUrlFromConfig() {
-  if (process.env.DATABASE_URL) {
-    console.log("[Config] Using DATABASE_URL from environment");
-    return process.env.DATABASE_URL;
-  }
-  if (process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME) {
-    const url = `mysql://${process.env.DB_USER}:${encodeURIComponent(process.env.DB_PASSWORD)}@${process.env.DB_HOST || "127.0.0.1"}:${process.env.DB_PORT || "3306"}/${process.env.DB_NAME}`;
-    console.log("[Config] Built DATABASE_URL from environment variables");
-    return url;
-  }
-  console.log("[Config] Using HARDCODED database credentials");
-  return HARDCODED_DATABASE_URL;
-}
-
 // server/db.ts
+import bcrypt from "bcryptjs";
 var _db = null;
-var _pool = null;
-function getDatabaseUrl() {
+var _connectionPool = null;
+console.log("[Database] Initializing...");
+console.log("[Database] DATABASE_URL exists:", !!process.env.DATABASE_URL);
+console.log("[Database] DB_HOST exists:", !!process.env.DB_HOST);
+console.log("[Database] DB_USER exists:", !!process.env.DB_USER);
+console.log("[Database] DB_NAME exists:", !!process.env.DB_NAME);
+if (process.env.DATABASE_URL) {
+  const sanitizedUrl = process.env.DATABASE_URL.replace(/:[^:@]+@/, ":****@");
+  console.log("[Database] DATABASE_URL (sanitized):", sanitizedUrl);
+}
+function buildDatabaseUrl() {
   if (process.env.DATABASE_URL) {
-    console.log("[Database] Using DATABASE_URL from process.env");
     return process.env.DATABASE_URL;
   }
   const host = process.env.DB_HOST;
+  const port = process.env.DB_PORT || "3306";
   const user = process.env.DB_USER;
   const password = process.env.DB_PASSWORD;
   const database = process.env.DB_NAME;
-  const port = process.env.DB_PORT || "3306";
-  if (user && password && database) {
-    const url = `mysql://${user}:${encodeURIComponent(password)}@${host || "127.0.0.1"}:${port}/${database}`;
-    console.log("[Database] Built DATABASE_URL from process.env individual variables");
+  if (host && user && password && database) {
+    const url = `mysql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+    console.log("[Database] Built DATABASE_URL from separate variables");
     return url;
   }
-  console.log("[Database] Using HARDCODED database credentials from config.production.ts");
-  return getDatabaseUrlFromConfig();
+  return null;
+}
+function parseDbUrl(url) {
+  try {
+    const dbUrl = new URL(url);
+    let database = dbUrl.pathname.slice(1);
+    if (database.includes("?")) {
+      database = database.split("?")[0];
+    }
+    const sslParam = dbUrl.searchParams.get("ssl");
+    let ssl = void 0;
+    if (sslParam) {
+      try {
+        ssl = JSON.parse(sslParam);
+      } catch {
+        ssl = sslParam === "true" ? { rejectUnauthorized: true } : void 0;
+      }
+    }
+    return {
+      host: dbUrl.hostname,
+      port: parseInt(dbUrl.port) || 3306,
+      user: dbUrl.username,
+      password: decodeURIComponent(dbUrl.password),
+      database,
+      ssl
+    };
+  } catch (error) {
+    console.error("[Database] Failed to parse DATABASE_URL:", error);
+    return null;
+  }
 }
 async function getDb() {
   if (_db) return _db;
-  const dbUrl = getDatabaseUrl();
+  const dbUrl = buildDatabaseUrl();
   if (!dbUrl) {
-    console.warn("[Database] Cannot connect: no database URL configured");
+    console.warn("[Database] No database configuration found (neither DATABASE_URL nor DB_HOST/DB_USER/DB_PASSWORD/DB_NAME)");
     return null;
   }
   try {
-    console.log("[Database] Attempting to connect...");
-    _pool = mysql.createPool({
-      uri: dbUrl,
+    console.log("[Database] Attempting connection...");
+    const config = parseDbUrl(dbUrl);
+    if (!config) {
+      console.error("[Database] Invalid DATABASE_URL format");
+      return null;
+    }
+    console.log("[Database] Connecting to:", config.host + ":" + config.port);
+    console.log("[Database] Database name:", config.database);
+    console.log("[Database] User:", config.user);
+    const poolConfig = {
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      database: config.database,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      connectTimeout: 3e4,
+      // 30 seconds
       enableKeepAlive: true,
-      keepAliveInitialDelay: 0
-    });
-    const connection = await _pool.getConnection();
-    console.log("[Database] Connection successful!");
-    connection.release();
-    _db = drizzle(_pool);
+      keepAliveInitialDelay: 1e4
+    };
+    if (config.ssl) {
+      poolConfig.ssl = config.ssl;
+      console.log("[Database] SSL enabled:", JSON.stringify(config.ssl));
+    }
+    _connectionPool = mysql.createPool(poolConfig);
+    const testConnection = await _connectionPool.getConnection();
+    console.log("[Database] Connection test successful!");
+    testConnection.release();
+    _db = drizzle({ client: _connectionPool });
+    console.log("[Database] Drizzle instance created successfully");
     return _db;
   } catch (error) {
-    console.error("[Database] Failed to connect:", error.message);
-    console.error("[Database] Error code:", error.code);
-    console.error("[Database] Error errno:", error.errno);
+    console.error("[Database] Connection failed:", error?.message || error);
+    console.error("[Database] Error code:", error?.code);
+    console.error("[Database] Error errno:", error?.errno);
     _db = null;
-    _pool = null;
     return null;
-  }
-}
-async function checkDatabaseStatus() {
-  const dbUrl = getDatabaseUrl();
-  const maskedUrl = dbUrl.replace(/:[^:@]+@/, ":****@");
-  const debugInfo = {
-    envVars: {
-      DATABASE_URL: !!process.env.DATABASE_URL,
-      DB_HOST: !!process.env.DB_HOST,
-      DB_USER: !!process.env.DB_USER,
-      DB_PASSWORD: !!process.env.DB_PASSWORD,
-      DB_NAME: !!process.env.DB_NAME
-    },
-    configVars: {
-      DATABASE_URL: !!PRODUCTION_CONFIG.DATABASE_URL,
-      DB_HOST: !!PRODUCTION_CONFIG.DB_HOST,
-      DB_USER: !!PRODUCTION_CONFIG.DB_USER,
-      DB_PASSWORD: !!PRODUCTION_CONFIG.DB_PASSWORD,
-      DB_NAME: !!PRODUCTION_CONFIG.DB_NAME
-    },
-    usingHardcoded: !process.env.DATABASE_URL && !process.env.DB_USER
-  };
-  try {
-    const connection = await mysql.createConnection(dbUrl);
-    const [rows] = await connection.execute("SELECT COUNT(*) as count FROM header_content");
-    await connection.end();
-    return {
-      status: "connected",
-      hasUrl: true,
-      maskedUrl,
-      dataCount: rows[0]?.count || 0,
-      ...debugInfo
-    };
-  } catch (error) {
-    return {
-      status: "error",
-      hasUrl: true,
-      maskedUrl,
-      error: error.message,
-      errorCode: error.code,
-      ...debugInfo
-    };
   }
 }
 async function upsertUser(user) {
@@ -685,15 +711,6 @@ async function deleteEvidenceCategory(id) {
   await db.delete(evidenceCategories).where(eq(evidenceCategories.id, id));
   return true;
 }
-async function getEvidenceForEvent(eventId) {
-  const db = await getDb();
-  if (!db) return [];
-  const links = await db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
-  const evidenceIds = links.map((l) => l.evidenceId);
-  if (evidenceIds.length === 0) return [];
-  const items = await db.select().from(evidenceItems);
-  return items.filter((item) => evidenceIds.includes(item.id));
-}
 async function addEvidenceToEvent(eventId, evidenceId, displayOrder = 0) {
   const db = await getDb();
   if (!db) return null;
@@ -703,8 +720,220 @@ async function addEvidenceToEvent(eventId, evidenceId, displayOrder = 0) {
 async function removeEvidenceFromEvent(eventId, evidenceId) {
   const db = await getDb();
   if (!db) return false;
-  await db.delete(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId));
+  const { and } = await import("drizzle-orm");
+  await db.delete(timelineEventEvidence).where(
+    and(
+      eq(timelineEventEvidence.eventId, eventId),
+      eq(timelineEventEvidence.evidenceId, evidenceId)
+    )
+  );
   return true;
+}
+async function getEvidenceForEvent(eventId) {
+  const db = await getDb();
+  if (!db) return [];
+  const links = await db.select().from(timelineEventEvidence).where(eq(timelineEventEvidence.eventId, eventId)).orderBy(asc(timelineEventEvidence.displayOrder));
+  if (links.length === 0) return [];
+  const evidenceIds = links.map((l) => l.evidenceId);
+  const { inArray } = await import("drizzle-orm");
+  const items = await db.select().from(evidenceItems).where(inArray(evidenceItems.id, evidenceIds));
+  return items;
+}
+async function getAdminUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: adminUsers.id,
+    username: adminUsers.username,
+    name: adminUsers.name,
+    email: adminUsers.email,
+    role: adminUsers.role,
+    isActive: adminUsers.isActive,
+    lastLogin: adminUsers.lastLogin,
+    createdAt: adminUsers.createdAt
+  }).from(adminUsers);
+}
+async function getAdminUserByUsername(username) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(adminUsers).where(eq(adminUsers.username, username)).limit(1);
+  return result[0] || null;
+}
+async function getAdminUserById(id) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(adminUsers).where(eq(adminUsers.id, id)).limit(1);
+  return result[0] || null;
+}
+async function createAdminUser(data) {
+  const db = await getDb();
+  if (!db) return null;
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+  await db.insert(adminUsers).values({
+    username: data.username,
+    password: hashedPassword,
+    name: data.name || null,
+    email: data.email || null,
+    role: data.role || "editor",
+    isActive: data.isActive ?? true
+  });
+  return getAdminUserByUsername(data.username);
+}
+async function updateAdminUser(id, data) {
+  const db = await getDb();
+  if (!db) return null;
+  const updateData = { ...data };
+  if (data.password) {
+    updateData.password = await bcrypt.hash(data.password, 10);
+  } else {
+    delete updateData.password;
+  }
+  await db.update(adminUsers).set(updateData).where(eq(adminUsers.id, id));
+  return getAdminUserById(id);
+}
+async function deleteAdminUser(id) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(adminUsers).where(eq(adminUsers.id, id));
+  return true;
+}
+async function updateAdminUserLastLogin(id) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(adminUsers).set({ lastLogin: /* @__PURE__ */ new Date() }).where(eq(adminUsers.id, id));
+}
+async function verifyAdminPassword(username, password) {
+  const user = await getAdminUserByUsername(username);
+  if (!user || !user.isActive) return null;
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) return null;
+  await updateAdminUserLastLogin(user.id);
+  return user;
+}
+async function getSiteAccessUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: siteAccessUsers.id,
+    username: siteAccessUsers.username,
+    name: siteAccessUsers.name,
+    isActive: siteAccessUsers.isActive,
+    createdAt: siteAccessUsers.createdAt
+  }).from(siteAccessUsers);
+}
+async function getSiteAccessUserByUsername(username) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(siteAccessUsers).where(eq(siteAccessUsers.username, username)).limit(1);
+  return result[0] || null;
+}
+async function getSiteAccessUserById(id) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(siteAccessUsers).where(eq(siteAccessUsers.id, id)).limit(1);
+  return result[0] || null;
+}
+async function createSiteAccessUser(data) {
+  const db = await getDb();
+  if (!db) return null;
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+  await db.insert(siteAccessUsers).values({
+    username: data.username,
+    password: hashedPassword,
+    name: data.name || null,
+    isActive: data.isActive ?? true
+  });
+  return getSiteAccessUserByUsername(data.username);
+}
+async function updateSiteAccessUser(id, data) {
+  const db = await getDb();
+  if (!db) return null;
+  const updateData = { ...data };
+  if (data.password) {
+    updateData.password = await bcrypt.hash(data.password, 10);
+  } else {
+    delete updateData.password;
+  }
+  await db.update(siteAccessUsers).set(updateData).where(eq(siteAccessUsers.id, id));
+  return getSiteAccessUserById(id);
+}
+async function deleteSiteAccessUser(id) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(siteAccessUsers).where(eq(siteAccessUsers.id, id));
+  return true;
+}
+async function verifySiteAccessPassword(username, password) {
+  const user = await getSiteAccessUserByUsername(username);
+  if (!user || !user.isActive) return null;
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) return null;
+  return user;
+}
+async function getSiteProtection() {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(siteProtection).limit(1);
+  return result[0] || null;
+}
+async function upsertSiteProtection(data) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await getSiteProtection();
+  if (existing) {
+    await db.update(siteProtection).set(data).where(eq(siteProtection.id, existing.id));
+    return getSiteProtection();
+  } else {
+    await db.insert(siteProtection).values({
+      isEnabled: data.isEnabled ?? false,
+      message: data.message || null
+    });
+    return getSiteProtection();
+  }
+}
+async function getAdminSettings() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminSettings);
+}
+async function getAdminSetting(key) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, key)).limit(1);
+  return result[0] || null;
+}
+async function updateAdminSetting(key, value, type = "text") {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await getAdminSetting(key);
+  if (existing) {
+    await db.update(adminSettings).set({ settingValue: value, settingType: type }).where(eq(adminSettings.settingKey, key));
+  } else {
+    await db.insert(adminSettings).values({
+      settingKey: key,
+      settingValue: value,
+      settingType: type
+    });
+  }
+  return getAdminSetting(key);
+}
+async function changeAdminPassword(adminId, currentPassword, newPassword) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.select().from(adminUsers).where(eq(adminUsers.id, adminId)).limit(1);
+  const admin = result[0];
+  if (!admin) throw new Error("Admin user not found");
+  const isValid = await bcrypt.compare(currentPassword, admin.password);
+  if (!isValid) throw new Error("\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629");
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await db.update(adminUsers).set({ password: hashedPassword }).where(eq(adminUsers.id, adminId));
+  return true;
+}
+async function uploadAdminLogo(imageData) {
+  return updateAdminSetting("admin_logo", imageData, "image");
+}
+async function uploadFavicon(imageData) {
+  return updateAdminSetting("favicon", imageData, "image");
 }
 
 // server/_core/cookies.ts
@@ -1197,8 +1426,105 @@ var adminProcedure2 = protectedProcedure.use(({ ctx, next }) => {
   }
   return next({ ctx });
 });
+var ADMIN_SESSION_COOKIE = "admin_session";
+var SITE_ACCESS_COOKIE = "site_access";
 var appRouter = router({
   system: systemRouter,
+  // ============ ADMIN AUTH API ============
+  adminAuth: router({
+    login: publicProcedure.input(z2.object({ username: z2.string(), password: z2.string() })).mutation(async ({ input, ctx }) => {
+      const user = await verifyAdminPassword(input.username, input.password);
+      if (!user) {
+        return { success: false, message: "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629" };
+      }
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(ADMIN_SESSION_COOKIE, JSON.stringify({ id: user.id, username: user.username, role: user.role }), {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1e3
+        // 7 days
+      });
+      return { success: true, user: { id: user.id, username: user.username, name: user.name, role: user.role } };
+    }),
+    logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(ADMIN_SESSION_COOKIE, { ...cookieOptions, maxAge: -1 });
+      return { success: true };
+    }),
+    me: publicProcedure.query(({ ctx }) => {
+      const sessionCookie = ctx.req.cookies?.[ADMIN_SESSION_COOKIE];
+      if (!sessionCookie) return null;
+      try {
+        return JSON.parse(sessionCookie);
+      } catch {
+        return null;
+      }
+    }),
+    getAdminUsers: adminProcedure2.query(() => getAdminUsers()),
+    createAdminUser: adminProcedure2.input(z2.object({
+      username: z2.string(),
+      password: z2.string(),
+      name: z2.string().optional(),
+      email: z2.string().optional(),
+      role: z2.enum(["super_admin", "admin", "editor", "viewer"]).default("editor"),
+      isActive: z2.boolean().default(true)
+    })).mutation(({ input }) => createAdminUser(input)),
+    updateAdminUser: adminProcedure2.input(z2.object({
+      id: z2.number(),
+      username: z2.string().optional(),
+      password: z2.string().optional(),
+      name: z2.string().optional(),
+      email: z2.string().optional(),
+      role: z2.enum(["super_admin", "admin", "editor", "viewer"]).optional(),
+      isActive: z2.boolean().optional()
+    })).mutation(({ input }) => updateAdminUser(input.id, input)),
+    deleteAdminUser: adminProcedure2.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteAdminUser(input.id))
+  }),
+  // ============ SITE PROTECTION API ============
+  siteProtection: router({
+    getSettings: publicProcedure.query(() => getSiteProtection()),
+    updateSettings: adminProcedure2.input(z2.object({
+      isEnabled: z2.boolean().optional(),
+      message: z2.string().optional()
+    })).mutation(({ input }) => upsertSiteProtection(input)),
+    getAccessUsers: adminProcedure2.query(() => getSiteAccessUsers()),
+    createAccessUser: adminProcedure2.input(z2.object({
+      username: z2.string(),
+      password: z2.string(),
+      name: z2.string().optional(),
+      isActive: z2.boolean().default(true)
+    })).mutation(({ input }) => createSiteAccessUser(input)),
+    updateAccessUser: adminProcedure2.input(z2.object({
+      id: z2.number(),
+      username: z2.string().optional(),
+      password: z2.string().optional(),
+      name: z2.string().optional(),
+      isActive: z2.boolean().optional()
+    })).mutation(({ input }) => updateSiteAccessUser(input.id, input)),
+    deleteAccessUser: adminProcedure2.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteSiteAccessUser(input.id)),
+    login: publicProcedure.input(z2.object({ username: z2.string(), password: z2.string() })).mutation(async ({ input, ctx }) => {
+      const user = await verifySiteAccessPassword(input.username, input.password);
+      if (!user) {
+        return { success: false, message: "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629" };
+      }
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(SITE_ACCESS_COOKIE, JSON.stringify({ id: user.id, username: user.username }), {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1e3
+        // 7 days
+      });
+      return { success: true };
+    }),
+    checkAccess: publicProcedure.query(({ ctx }) => {
+      const sessionCookie = ctx.req.cookies?.[SITE_ACCESS_COOKIE];
+      if (!sessionCookie) return { hasAccess: false };
+      try {
+        const session = JSON.parse(sessionCookie);
+        return { hasAccess: true, user: session };
+      } catch {
+        return { hasAccess: false };
+      }
+    })
+  }),
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -1207,22 +1533,109 @@ var appRouter = router({
       return { success: true };
     })
   }),
-  // ============ DEBUG API ============
-  debug: router({
-    checkDb: publicProcedure.query(async () => {
-      return await checkDatabaseStatus();
-    }),
-    envCheck: publicProcedure.query(() => {
-      return {
-        NODE_ENV: process.env.NODE_ENV || "not set",
-        hasDbUrl: !!process.env.DATABASE_URL,
-        hasDbHost: !!process.env.DB_HOST,
-        hasDbUser: !!process.env.DB_USER,
-        hasDbPassword: !!process.env.DB_PASSWORD,
-        hasDbName: !!process.env.DB_NAME,
-        hasJwtSecret: !!process.env.JWT_SECRET,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  // ============ DIAGNOSTICS API ============
+  diagnostics: router({
+    dbStatus: publicProcedure.query(async () => {
+      const envCheck = {
+        DATABASE_URL_EXISTS: !!process.env.DATABASE_URL,
+        DATABASE_URL_LENGTH: process.env.DATABASE_URL?.length || 0,
+        DATABASE_URL_PREFIX: process.env.DATABASE_URL?.substring(0, 20) + "..." || "NOT_SET",
+        NODE_ENV: process.env.NODE_ENV || "NOT_SET",
+        // Separate DB variables
+        DB_HOST: process.env.DB_HOST || "NOT_SET",
+        DB_PORT: process.env.DB_PORT || "3306",
+        DB_USER_EXISTS: !!process.env.DB_USER,
+        DB_PASSWORD_EXISTS: !!process.env.DB_PASSWORD,
+        DB_NAME: process.env.DB_NAME || "NOT_SET",
+        // Working directory info
+        CWD: process.cwd()
       };
+      let dbConnection = {
+        status: "unknown",
+        error: null,
+        tableCount: 0
+      };
+      try {
+        const dbInstance = await getDb();
+        if (dbInstance) {
+          const testResult = await getSiteSettings();
+          dbConnection.status = "connected";
+          dbConnection.tableCount = Array.isArray(testResult) ? testResult.length : 0;
+        } else {
+          dbConnection.status = "no_db_instance";
+          dbConnection.error = "getDb() returned null - check server logs for detailed error";
+        }
+      } catch (error) {
+        dbConnection.status = "error";
+        dbConnection.error = error?.message || String(error);
+        if (error?.code) {
+          dbConnection.error += ` (Code: ${error.code})`;
+        }
+        if (error?.errno) {
+          dbConnection.error += ` (Errno: ${error.errno})`;
+        }
+      }
+      return {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        environment: envCheck,
+        dbUrl: {
+          exists: !!process.env.DATABASE_URL,
+          length: process.env.DATABASE_URL?.length || 0,
+          prefix: process.env.DATABASE_URL?.substring(0, 30) + "..." || "NOT_SET"
+        },
+        database: dbConnection
+      };
+    }),
+    // Direct connection test with detailed error
+    testConnection: publicProcedure.query(async () => {
+      const mysql2 = await import("mysql2/promise");
+      const dbUrl = process.env.DATABASE_URL;
+      const host = process.env.DB_HOST || "localhost";
+      const port = parseInt(process.env.DB_PORT || "3306");
+      const user = process.env.DB_USER;
+      const password = process.env.DB_PASSWORD;
+      const database = process.env.DB_NAME;
+      const result = {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        config: {
+          host,
+          port,
+          user: user ? user.substring(0, 5) + "..." : "NOT_SET",
+          database: database || "NOT_SET",
+          hasPassword: !!password,
+          passwordLength: password?.length || 0
+        },
+        connection: {
+          status: "unknown",
+          error: null
+        }
+      };
+      try {
+        if (host && user && password && database) {
+          const connection = await mysql2.createConnection({
+            host,
+            port,
+            user,
+            password,
+            database,
+            connectTimeout: 1e4
+          });
+          const [rows] = await connection.execute("SELECT 1 as test");
+          result.connection.status = "connected";
+          result.connection.testQuery = rows;
+          await connection.end();
+        } else {
+          result.connection.status = "missing_config";
+          result.connection.error = "Missing required database configuration";
+        }
+      } catch (error) {
+        result.connection.status = "error";
+        result.connection.error = error?.message || String(error);
+        result.connection.code = error?.code;
+        result.connection.errno = error?.errno;
+        result.connection.sqlState = error?.sqlState;
+      }
+      return result;
     })
   }),
   // ============ PUBLIC CONTENT API ============
@@ -1276,8 +1689,8 @@ var appRouter = router({
     updateCaseStructureItem: adminProcedure2.input(z2.object({ id: z2.number(), data: z2.object({ sectionNumber: z2.number().optional(), title: z2.string().optional(), description: z2.string().nullable().optional(), displayOrder: z2.number().optional() }) })).mutation(({ input }) => updateCaseStructureItem(input.id, input.data)),
     deleteCaseStructureItem: adminProcedure2.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteCaseStructureItem(input.id)),
     getTimelineEvents: adminProcedure2.query(() => getTimelineEvents()),
-    createTimelineEvent: adminProcedure2.input(z2.object({ date: z2.string(), time: z2.string().nullable().optional(), title: z2.string(), description: z2.string().nullable().optional(), category: z2.string(), displayOrder: z2.number().default(0), isActive: z2.boolean().default(true) })).mutation(({ input }) => createTimelineEvent(input)),
-    updateTimelineEvent: adminProcedure2.input(z2.object({ id: z2.number(), data: z2.object({ date: z2.string().optional(), time: z2.string().nullable().optional(), title: z2.string().optional(), description: z2.string().nullable().optional(), category: z2.string().optional(), displayOrder: z2.number().optional(), isActive: z2.boolean().optional() }) })).mutation(({ input }) => updateTimelineEvent(input.id, input.data)),
+    createTimelineEvent: adminProcedure2.input(z2.object({ date: z2.string(), time: z2.string().nullable().optional(), title: z2.string(), description: z2.string().nullable().optional(), category: z2.string(), customColor: z2.string().nullable().optional(), customBgColor: z2.string().nullable().optional(), customTextColor: z2.string().nullable().optional(), displayOrder: z2.number().default(0), isActive: z2.boolean().default(true) })).mutation(({ input }) => createTimelineEvent(input)),
+    updateTimelineEvent: adminProcedure2.input(z2.object({ id: z2.number(), data: z2.object({ date: z2.string().optional(), time: z2.string().nullable().optional(), title: z2.string().optional(), description: z2.string().nullable().optional(), category: z2.string().optional(), customColor: z2.string().nullable().optional(), customBgColor: z2.string().nullable().optional(), customTextColor: z2.string().nullable().optional(), displayOrder: z2.number().optional(), isActive: z2.boolean().optional() }) })).mutation(({ input }) => updateTimelineEvent(input.id, input.data)),
     deleteTimelineEvent: adminProcedure2.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteTimelineEvent(input.id)),
     getEvidenceItems: adminProcedure2.query(() => getEvidenceItems()),
     createEvidenceItem: adminProcedure2.input(z2.object({ title: z2.string(), description: z2.string().nullable().optional(), category: z2.string(), fileUrl: z2.string().nullable().optional(), fileName: z2.string().nullable().optional(), fileType: z2.string().nullable().optional(), thumbnailUrl: z2.string().nullable().optional(), eventId: z2.number().nullable().optional(), displayOrder: z2.number().default(0), isActive: z2.boolean().default(true) })).mutation(({ input }) => createEvidenceItem(input)),
@@ -1295,6 +1708,12 @@ var appRouter = router({
       const result = await storagePut(fileKey, buffer, input.contentType);
       return result;
     }),
+    uploadVideo: adminProcedure2.input(z2.object({ fileName: z2.string(), fileData: z2.string(), contentType: z2.string() })).mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.fileData, "base64");
+      const fileKey = `videos/${Date.now()}-${input.fileName}`;
+      const result = await storagePut(fileKey, buffer, input.contentType);
+      return result;
+    }),
     // Timeline Categories
     getTimelineCategories: adminProcedure2.query(() => getTimelineCategories()),
     createTimelineCategory: adminProcedure2.input(z2.object({ key: z2.string(), label: z2.string(), color: z2.string().optional(), bgColor: z2.string().optional(), textColor: z2.string().optional(), lightColor: z2.string().optional(), displayOrder: z2.number().default(0), isActive: z2.boolean().default(true) })).mutation(({ input }) => createTimelineCategory(input)),
@@ -1308,17 +1727,51 @@ var appRouter = router({
     // Timeline Event Evidence (linking evidence to events)
     getEventEvidence: adminProcedure2.input(z2.object({ eventId: z2.number() })).query(({ input }) => getEvidenceForEvent(input.eventId)),
     addEvidenceToEvent: adminProcedure2.input(z2.object({ eventId: z2.number(), evidenceId: z2.number(), displayOrder: z2.number().default(0) })).mutation(({ input }) => addEvidenceToEvent(input.eventId, input.evidenceId, input.displayOrder)),
-    removeEvidenceFromEvent: adminProcedure2.input(z2.object({ eventId: z2.number(), evidenceId: z2.number() })).mutation(({ input }) => removeEvidenceFromEvent(input.eventId, input.evidenceId))
+    removeEvidenceFromEvent: adminProcedure2.input(z2.object({ eventId: z2.number(), evidenceId: z2.number() })).mutation(({ input }) => removeEvidenceFromEvent(input.eventId, input.evidenceId)),
+    // Admin Settings (logo, favicon, etc.)
+    getAdminSettings: adminProcedure2.query(() => getAdminSettings()),
+    updateAdminSetting: adminProcedure2.input(z2.object({ key: z2.string(), value: z2.string() })).mutation(({ input }) => updateAdminSetting(input.key, input.value)),
+    uploadAdminLogo: adminProcedure2.input(z2.object({ imageData: z2.string() })).mutation(({ input }) => uploadAdminLogo(input.imageData)),
+    uploadFavicon: adminProcedure2.input(z2.object({ imageData: z2.string() })).mutation(({ input }) => uploadFavicon(input.imageData)),
+    changeAdminPassword: adminProcedure2.input(z2.object({ currentPassword: z2.string(), newPassword: z2.string() })).mutation(async ({ input, ctx }) => {
+      const sessionCookie = ctx.req.cookies?.["admin_session"];
+      if (!sessionCookie) throw new TRPCError3({ code: "UNAUTHORIZED", message: "Not logged in" });
+      try {
+        const session = JSON.parse(sessionCookie);
+        return changeAdminPassword(session.id, input.currentPassword, input.newPassword);
+      } catch (error) {
+        throw new TRPCError3({ code: "BAD_REQUEST", message: error.message || "Failed to change password" });
+      }
+    })
   })
 });
 
 // server/_core/context.ts
+var DEV_ADMIN_USER = {
+  id: 1,
+  openId: "dev-admin-user",
+  name: "Dev Admin",
+  email: "admin@localhost",
+  loginMethod: "dev",
+  role: "admin",
+  createdAt: /* @__PURE__ */ new Date(),
+  updatedAt: /* @__PURE__ */ new Date(),
+  lastSignedIn: /* @__PURE__ */ new Date()
+};
 async function createContext(opts) {
   let user = null;
-  try {
-    user = await sdk.authenticateRequest(opts.req);
-  } catch (error) {
-    user = null;
+  const isDevelopment = !ENV.isProduction;
+  const isOAuthConfigured = !!ENV.oAuthServerUrl;
+  const isAdminRoute = opts.req.path.includes("/admin.") || opts.req.path.includes("/siteProtection.") || opts.req.path.includes("/adminAuth.");
+  if (isDevelopment && !isOAuthConfigured && isAdminRoute) {
+    console.log("[Auth] Development mode: Using dev admin user for admin routes");
+    user = DEV_ADMIN_USER;
+  } else {
+    try {
+      user = await sdk.authenticateRequest(opts.req);
+    } catch (error) {
+      user = null;
+    }
   }
   return {
     req: opts.req,
@@ -1427,30 +1880,38 @@ function serveStatic(app) {
 // server/_core/index.ts
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path3.dirname(__filename);
-var possibleEnvPaths = [
+var envPaths = [
   path3.resolve(process.cwd(), ".env"),
-  path3.resolve(process.cwd(), "../.env"),
+  path3.resolve(process.cwd(), ".env.production"),
   path3.resolve(__dirname, "../../.env"),
-  path3.resolve(__dirname, "../../../.env"),
-  "/home/.env",
-  "/var/www/.env"
+  path3.resolve(__dirname, "../../.env.production")
 ];
+console.log("[Env] Current working directory:", process.cwd());
+console.log("[Env] Script directory:", __dirname);
 var envLoaded = false;
-for (const envPath of possibleEnvPaths) {
+for (const envPath of envPaths) {
+  console.log(`[Env] Checking: ${envPath}`);
   if (fs2.existsSync(envPath)) {
-    console.log(`[ENV] Loading environment from: ${envPath}`);
-    dotenv.config({ path: envPath });
-    envLoaded = true;
-    break;
+    console.log(`[Env] Loading environment from: ${envPath}`);
+    const result = dotenv.config({ path: envPath });
+    if (result.error) {
+      console.error("[Env] Error loading .env:", result.error);
+    } else {
+      console.log("[Env] Successfully loaded environment variables");
+      envLoaded = true;
+      break;
+    }
   }
 }
 if (!envLoaded) {
-  console.log("[ENV] No .env file found, using system environment variables");
+  console.log("[Env] No .env file found in checked paths, using system environment variables");
   dotenv.config();
 }
-console.log("[ENV] DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "NOT SET");
-console.log("[ENV] DB_HOST:", process.env.DB_HOST ? "SET" : "NOT SET");
-console.log("[ENV] NODE_ENV:", process.env.NODE_ENV || "NOT SET");
+console.log("[Env] DATABASE_URL exists:", !!process.env.DATABASE_URL);
+if (process.env.DATABASE_URL) {
+  const sanitized = process.env.DATABASE_URL.replace(/:[^:@]+@/, ":****@");
+  console.log("[Env] DATABASE_URL (sanitized):", sanitized);
+}
 function isPortAvailable(port) {
   return new Promise((resolve) => {
     const server = net.createServer();

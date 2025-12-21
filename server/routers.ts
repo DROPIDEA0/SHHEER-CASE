@@ -441,6 +441,31 @@ export const appRouter = router({
     removeEvidenceFromEvent: adminProcedure
       .input(z.object({ eventId: z.number(), evidenceId: z.number() }))
       .mutation(({ input }) => db.removeEvidenceFromEvent(input.eventId, input.evidenceId)),
+
+    // Admin Settings (logo, favicon, etc.)
+    getAdminSettings: adminProcedure.query(() => db.getAdminSettings()),
+    updateAdminSetting: adminProcedure
+      .input(z.object({ key: z.string(), value: z.string() }))
+      .mutation(({ input }) => db.updateAdminSetting(input.key, input.value)),
+    uploadAdminLogo: adminProcedure
+      .input(z.object({ imageData: z.string() }))
+      .mutation(({ input }) => db.uploadAdminLogo(input.imageData)),
+    uploadFavicon: adminProcedure
+      .input(z.object({ imageData: z.string() }))
+      .mutation(({ input }) => db.uploadFavicon(input.imageData)),
+    changeAdminPassword: adminProcedure
+      .input(z.object({ currentPassword: z.string(), newPassword: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        // Get admin ID from session cookie
+        const sessionCookie = ctx.req.cookies?.['admin_session'];
+        if (!sessionCookie) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Not logged in' });
+        try {
+          const session = JSON.parse(sessionCookie);
+          return db.changeAdminPassword(session.id, input.currentPassword, input.newPassword);
+        } catch (error: any) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: error.message || 'Failed to change password' });
+        }
+      }),
   }),
 });
 

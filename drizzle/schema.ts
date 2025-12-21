@@ -314,3 +314,18 @@ export const siteProtection = mysqlTable("site_protection", {
 
 export type SiteProtection = typeof siteProtection.$inferSelect;
 export type InsertSiteProtection = typeof siteProtection.$inferInsert;
+
+/**
+ * Admin Settings - Admin panel configuration (logo, favicon, etc.)
+ */
+export const adminSettings = mysqlTable("admin_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 100 }).notNull().unique(),
+  settingValue: text("settingValue"),
+  settingType: varchar("settingType", { length: 50 }).default("text"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type InsertAdminSetting = typeof adminSettings.$inferInsert;

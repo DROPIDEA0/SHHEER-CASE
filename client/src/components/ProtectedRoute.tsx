@@ -1,58 +1,65 @@
-import { useState, useEffect } from 'react';
-import { trpc } from '@/lib/trpc';
-import SiteLogin from '@/pages/SiteLogin';
-import { Loader2 } from 'lucide-react';
+import { trpc } from "@/lib/trpc";
+import { useEffect, useState } from "react";
+import SiteLogin from "../pages/SiteLogin";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
-
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const [isChecking, setIsChecking] = useState(true);
-  const [needsAuth, setNeedsAuth] = useState(false);
-  const [loginMessage, setLoginMessage] = useState('');
-
-  const { data: protection, isLoading: protectionLoading } = trpc.siteProtection.getSettings.useQuery();
-  const { data: accessCheck, isLoading: accessLoading, refetch: refetchAccess } = trpc.siteProtection.checkAccess.useQuery();
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const [needsAuth, setNeedsAuth] = useState(true);
+  
+  const { data: settings } = trpc.siteProtection.getSettings.useQuery();
+  const { data: accessCheck, refetch: refetchAccess, isLoading: accessLoading } = trpc.siteProtection.checkAccess.useQuery();
 
   useEffect(() => {
-    if (!protectionLoading && !accessLoading) {
-      // If protection is not enabled, allow access
-      if (!protection?.isEnabled) {
-        setNeedsAuth(false);
-        setIsChecking(false);
-        return;
-      }
-
-      // If protection is enabled, check if user has access
-      if (accessCheck?.hasAccess) {
-        setNeedsAuth(false);
-      } else {
-        setNeedsAuth(true);
-        setLoginMessage(protection.message || 'This site is protected. Please login to continue.');
-      }
-      setIsChecking(false);
+    console.log('[ProtectedRoute] useEffect triggered', { 
+      accessCheck, 
+      accessLoading,
+      protectionEnabled: settings?.protectionEnabled 
+    });
+    
+    if (!settings?.protectionEnabled) {
+      console.log('[ProtectedRoute] Protection disabled, allowing access');
+      setNeedsAuth(false);
+      return;
     }
-  }, [protection, accessCheck, protectionLoading, accessLoading]);
 
-  const handleLoginSuccess = () => {
-    console.log('[ProtectedRoute] Login successful, refetching access');
-    refetchAccess();
+    if (accessCheck?.hasAccess) {
+      console.log('[ProtectedRoute] Has access, allowing entry');
+      setNeedsAuth(false);
+    } else if (!accessLoading) {
+      console.log('[ProtectedRoute] No access, showing login');
+      setNeedsAuth(true);
+    }
+  }, [accessCheck, accessLoading, settings]);
+
+  const handleLoginSuccess = async () => {
+    console.log('[ProtectedRoute] Login successful, refetching access after delay');
+    
+    // Wait for cookie to be set properly
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const result = await refetchAccess();
+    console.log('[ProtectedRoute] Refetch result:', result.data);
+    
+    if (result.data?.hasAccess) {
+      console.log('[ProtectedRoute] Access granted after refetch');
+      setNeedsAuth(false);
+    } else {
+      console.log('[ProtectedRoute] Still no access after refetch, reloading page');
+      // Force page reload to ensure cookie is properly set
+      window.location.reload();
+    }
   };
 
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-[#722f37] mx-auto mb-4" />
-          <p className="text-stone-600">Loading...</p>
-        </div>
-      </div>
-    );
+  if (!settings?.protectionEnabled) {
+    return <>{children}</>;
   }
 
   if (needsAuth) {
-    return <SiteLogin message={loginMessage} onSuccess={handleLoginSuccess} />;
+    return (
+      <SiteLogin 
+        message={settings?.message}
+        onSuccess={handleLoginSuccess}
+      />
+    );
   }
 
   return <>{children}</>;

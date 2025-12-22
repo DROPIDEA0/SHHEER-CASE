@@ -23,7 +23,7 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
       if (data.success) {
         // Save to localStorage as backup
         localStorage.setItem('site_access_user', username);
-        console.log('[SiteLogin] Login successful');
+        console.log('[SiteLogin] Login successful'); 
         onSuccess();
       } else {
         setError(data.message || 'Login failed');

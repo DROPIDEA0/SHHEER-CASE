@@ -727,11 +727,31 @@ export async function updateAdminUserLastLogin(id: number) {
 }
 
 export async function verifyAdminPassword(username: string, password: string) {
+  console.log('[DB] verifyAdminPassword called:', { username });
+  
   const user = await getAdminUserByUsername(username);
-  if (!user || !user.isActive) return null;
+  
+  if (!user) {
+    console.log('[DB] User not found:', username);
+    return null;
+  }
+  
+  if (!user.isActive) {
+    console.log('[DB] User is inactive:', username);
+    return null;
+  }
+  
+  console.log('[DB] User found:', { id: user.id, username: user.username, isActive: user.isActive });
+  console.log('[DB] Comparing passwords...');
   
   const isValid = await bcrypt.compare(password, user.password);
-  if (!isValid) return null;
+  
+  if (!isValid) {
+    console.log('[DB] Password mismatch for user:', username);
+    return null;
+  }
+  
+  console.log('[DB] Password verified successfully for user:', username);
   
   await updateAdminUserLastLogin(user.id);
   return user;

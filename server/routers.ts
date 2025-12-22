@@ -28,17 +28,27 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ username: z.string(), password: z.string() }))
       .mutation(async ({ input, ctx }) => {
+        console.log('[AdminAuth] Login attempt:', { username: input.username });
+        
         const user = await db.verifyAdminPassword(input.username, input.password);
+        
         if (!user) {
-          return { success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+          console.log('[AdminAuth] Login failed: Invalid credentials');
+          return { success: false, message: 'Invalid username or password' };
         }
+        
+        console.log('[AdminAuth] Login successful:', { id: user.id, username: user.username, role: user.role });
         
         // Set admin session cookie
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(ADMIN_SESSION_COOKIE, JSON.stringify({ id: user.id, username: user.username, role: user.role }), {
+        const sessionData = { id: user.id, username: user.username, role: user.role };
+        
+        ctx.res.cookie(ADMIN_SESSION_COOKIE, JSON.stringify(sessionData), {
           ...cookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
+        
+        console.log('[AdminAuth] Session cookie set:', sessionData);
         
         return { success: true, user: { id: user.id, username: user.username, name: user.name, role: user.role } };
       }),

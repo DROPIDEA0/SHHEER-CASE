@@ -803,10 +803,24 @@ async function updateAdminUserLastLogin(id) {
   await db.update(adminUsers).set({ lastLogin: /* @__PURE__ */ new Date() }).where(eq(adminUsers.id, id));
 }
 async function verifyAdminPassword(username, password) {
+  console.log("[DB] verifyAdminPassword called:", { username });
   const user = await getAdminUserByUsername(username);
-  if (!user || !user.isActive) return null;
+  if (!user) {
+    console.log("[DB] User not found:", username);
+    return null;
+  }
+  if (!user.isActive) {
+    console.log("[DB] User is inactive:", username);
+    return null;
+  }
+  console.log("[DB] User found:", { id: user.id, username: user.username, isActive: user.isActive });
+  console.log("[DB] Comparing passwords...");
   const isValid = await bcrypt.compare(password, user.password);
-  if (!isValid) return null;
+  if (!isValid) {
+    console.log("[DB] Password mismatch for user:", username);
+    return null;
+  }
+  console.log("[DB] Password verified successfully for user:", username);
   await updateAdminUserLastLogin(user.id);
   return user;
 }
@@ -1433,16 +1447,21 @@ var appRouter = router({
   // ============ ADMIN AUTH API ============
   adminAuth: router({
     login: publicProcedure.input(z2.object({ username: z2.string(), password: z2.string() })).mutation(async ({ input, ctx }) => {
+      console.log("[AdminAuth] Login attempt:", { username: input.username });
       const user = await verifyAdminPassword(input.username, input.password);
       if (!user) {
-        return { success: false, message: "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629" };
+        console.log("[AdminAuth] Login failed: Invalid credentials");
+        return { success: false, message: "Invalid username or password" };
       }
+      console.log("[AdminAuth] Login successful:", { id: user.id, username: user.username, role: user.role });
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(ADMIN_SESSION_COOKIE, JSON.stringify({ id: user.id, username: user.username, role: user.role }), {
+      const sessionData = { id: user.id, username: user.username, role: user.role };
+      ctx.res.cookie(ADMIN_SESSION_COOKIE, JSON.stringify(sessionData), {
         ...cookieOptions,
         maxAge: 7 * 24 * 60 * 60 * 1e3
         // 7 days
       });
+      console.log("[AdminAuth] Session cookie set:", sessionData);
       return { success: true, user: { id: user.id, username: user.username, name: user.name, role: user.role } };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {

@@ -20,12 +20,12 @@ export default function AdminLogin() {
       if (data.success) {
         setLocation('/admin');
       } else {
-        setError(data.message || 'فشل تسجيل الدخول');
+        setError(data.message || 'Login failed');
       }
       setIsLoading(false);
     },
     onError: (err) => {
-      setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
+      setError(err.message || 'An error occurred during login');
       setIsLoading(false);
     },
   });
@@ -35,7 +35,7 @@ export default function AdminLogin() {
     setError('');
     
     if (!username || !password) {
-      setError('يرجى إدخال اسم المستخدم وكلمة المرور');
+      setError('Please enter username and password');
       return;
     }
 
@@ -47,22 +47,22 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-4">
-          {/* Logo */}
+          {/* Logo - Larger size */}
           <div className="flex justify-center">
-            <div className="bg-gradient-to-r from-olive-700 to-olive-800 p-4 rounded-xl">
+            <div className="bg-gradient-to-r from-[#722f37] to-[#8b3a44] p-5 rounded-xl shadow-lg">
               <img 
                 src="/images/logo.png" 
                 alt="Logo" 
-                className="h-16 w-16 object-contain"
+                className="h-20 w-20 object-contain"
               />
             </div>
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-stone-800">
-              لوحة التحكم
+              Admin Panel
             </CardTitle>
             <CardDescription className="text-stone-500 mt-2">
-              قم بتسجيل الدخول للوصول إلى لوحة التحكم
+              Please login to access the admin panel
             </CardDescription>
           </div>
         </CardHeader>
@@ -77,14 +77,14 @@ export default function AdminLogin() {
             
             <div className="space-y-2">
               <Label htmlFor="username" className="text-stone-700">
-                اسم المستخدم
+                Username
               </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                 <Input
                   id="username"
                   type="text"
-                  placeholder="أدخل اسم المستخدم"
+                  placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
@@ -96,14 +96,14 @@ export default function AdminLogin() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-stone-700">
-                كلمة المرور
+                Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="أدخل كلمة المرور"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -115,16 +115,16 @@ export default function AdminLogin() {
 
             <Button 
               type="submit" 
-              className="w-full bg-olive-700 hover:bg-olive-800"
+              className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جاري تسجيل الدخول...
+                  Logging in...
                 </>
               ) : (
-                'تسجيل الدخول'
+                'Login'
               )}
             </Button>
           </form>
@@ -132,14 +132,14 @@ export default function AdminLogin() {
           {/* Footer Credit */}
           <div className="mt-6 pt-4 border-t border-stone-200">
             <p className="text-center text-xs text-stone-400">
-              الدعم التقني والتصميم من قبل شركة{' '}
+              Technical support and design by{' '}
               <a 
                 href="https://dropidea.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-olive-600 hover:text-olive-700 font-medium"
+                className="text-[#722f37] hover:text-[#8b3a44] font-medium"
               >
-                دروب أيديا
+                Drop Idea
               </a>
             </p>
           </div>

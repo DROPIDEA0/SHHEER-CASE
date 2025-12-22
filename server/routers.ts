@@ -138,28 +138,45 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ username: z.string(), password: z.string() }))
       .mutation(async ({ input, ctx }) => {
+        console.log('[SiteProtection] Login attempt:', { username: input.username });
+        
         const user = await db.verifySiteAccessPassword(input.username, input.password);
+        
         if (!user) {
-          return { success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+          console.log('[SiteProtection] Login failed: Invalid credentials');
+          return { success: false, message: 'Invalid username or password' };
         }
+        
+        console.log('[SiteProtection] Login successful:', { id: user.id, username: user.username });
         
         // Set site access cookie
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(SITE_ACCESS_COOKIE, JSON.stringify({ id: user.id, username: user.username }), {
+        const sessionData = { id: user.id, username: user.username };
+        
+        ctx.res.cookie(SITE_ACCESS_COOKIE, JSON.stringify(sessionData), {
           ...cookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
+        
+        console.log('[SiteProtection] Session cookie set:', sessionData);
         
         return { success: true };
       }),
     
     checkAccess: publicProcedure.query(({ ctx }) => {
       const sessionCookie = ctx.req.cookies?.[SITE_ACCESS_COOKIE];
-      if (!sessionCookie) return { hasAccess: false };
+      
+      if (!sessionCookie) {
+        console.log('[SiteProtection] No session cookie found');
+        return { hasAccess: false };
+      }
+      
       try {
         const session = JSON.parse(sessionCookie);
+        console.log('[SiteProtection] Access granted:', session);
         return { hasAccess: true, user: session };
       } catch {
+        console.log('[SiteProtection] Invalid session cookie');
         return { hasAccess: false };
       }
     }),

@@ -1521,25 +1521,35 @@ var appRouter = router({
     })).mutation(({ input }) => updateSiteAccessUser(input.id, input)),
     deleteAccessUser: adminProcedure2.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteSiteAccessUser(input.id)),
     login: publicProcedure.input(z2.object({ username: z2.string(), password: z2.string() })).mutation(async ({ input, ctx }) => {
+      console.log("[SiteProtection] Login attempt:", { username: input.username });
       const user = await verifySiteAccessPassword(input.username, input.password);
       if (!user) {
-        return { success: false, message: "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629" };
+        console.log("[SiteProtection] Login failed: Invalid credentials");
+        return { success: false, message: "Invalid username or password" };
       }
+      console.log("[SiteProtection] Login successful:", { id: user.id, username: user.username });
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(SITE_ACCESS_COOKIE, JSON.stringify({ id: user.id, username: user.username }), {
+      const sessionData = { id: user.id, username: user.username };
+      ctx.res.cookie(SITE_ACCESS_COOKIE, JSON.stringify(sessionData), {
         ...cookieOptions,
         maxAge: 7 * 24 * 60 * 60 * 1e3
         // 7 days
       });
+      console.log("[SiteProtection] Session cookie set:", sessionData);
       return { success: true };
     }),
     checkAccess: publicProcedure.query(({ ctx }) => {
       const sessionCookie = ctx.req.cookies?.[SITE_ACCESS_COOKIE];
-      if (!sessionCookie) return { hasAccess: false };
+      if (!sessionCookie) {
+        console.log("[SiteProtection] No session cookie found");
+        return { hasAccess: false };
+      }
       try {
         const session = JSON.parse(sessionCookie);
+        console.log("[SiteProtection] Access granted:", session);
         return { hasAccess: true, user: session };
       } catch {
+        console.log("[SiteProtection] Invalid session cookie");
         return { hasAccess: false };
       }
     })

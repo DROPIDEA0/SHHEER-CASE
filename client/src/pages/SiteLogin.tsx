@@ -21,14 +21,17 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
   const loginMutation = trpc.siteProtection.login.useMutation({
     onSuccess: (data) => {
       if (data.success) {
+        // Save to localStorage as backup
+        localStorage.setItem('site_access_user', username);
+        console.log('[SiteLogin] Login successful');
         onSuccess();
       } else {
-        setError(data.message || 'فشل تسجيل الدخول');
+        setError(data.message || 'Login failed');
       }
       setIsLoading(false);
     },
     onError: (err) => {
-      setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
+      setError(err.message || 'An error occurred during login');
       setIsLoading(false);
     },
   });
@@ -38,7 +41,7 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
     setError('');
     
     if (!username || !password) {
-      setError('يرجى إدخال اسم المستخدم وكلمة المرور');
+      setError('Please enter username and password');
       return;
     }
 
@@ -68,7 +71,7 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
               </CardTitle>
             </div>
             <CardDescription className="text-stone-500">
-              {message || 'يرجى تسجيل الدخول للوصول إلى هذا الموقع'}
+              {message || 'This site is protected. Please login to continue.'}
             </CardDescription>
           </div>
         </CardHeader>
@@ -83,14 +86,14 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
             
             <div className="space-y-2">
               <Label htmlFor="username" className="text-stone-700">
-                اسم المستخدم
+                Username
               </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                 <Input
                   id="username"
                   type="text"
-                  placeholder="أدخل اسم المستخدم"
+                  placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
@@ -102,14 +105,14 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-stone-700">
-                كلمة المرور
+                Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="أدخل كلمة المرور"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -121,16 +124,16 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
 
             <Button 
               type="submit" 
-              className="w-full bg-[#722f37] hover:bg-[#8b3a44]"
+              className="w-full bg-[#722f37] hover:bg-[#8b3a44] font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جاري تسجيل الدخول...
+                  Logging in...
                 </>
               ) : (
-                'تسجيل الدخول'
+                'Login'
               )}
             </Button>
           </form>
@@ -138,14 +141,14 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
           {/* Footer Credit */}
           <div className="mt-6 pt-4 border-t border-stone-200">
             <p className="text-center text-xs text-stone-400">
-              الدعم التقني والتصميم من قبل شركة{' '}
+              Technical support and design by{' '}
               <a 
                 href="https://dropidea.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-[#722f37] hover:text-[#8b3a44] font-medium"
               >
-                دروب أيديا
+                Drop Idea
               </a>
             </p>
           </div>

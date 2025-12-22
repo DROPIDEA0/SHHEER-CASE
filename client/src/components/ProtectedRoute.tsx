@@ -29,13 +29,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         setNeedsAuth(false);
       } else {
         setNeedsAuth(true);
-        setLoginMessage(protection.message || 'يرجى تسجيل الدخول للوصول إلى هذا الموقع');
+        setLoginMessage(protection.message || 'This site is protected. Please login to continue.');
       }
       setIsChecking(false);
     }
   }, [protection, accessCheck, protectionLoading, accessLoading]);
 
   const handleLoginSuccess = () => {
+    console.log('[ProtectedRoute] Login successful, refetching access');
     refetchAccess();
   };
 
@@ -44,7 +45,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       <div className="min-h-screen flex items-center justify-center bg-stone-50">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-[#722f37] mx-auto mb-4" />
-          <p className="text-stone-600">جاري التحميل...</p>
+          <p className="text-stone-600">Loading...</p>
         </div>
       </div>
     );

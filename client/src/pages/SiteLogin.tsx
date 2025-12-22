@@ -64,7 +64,7 @@ export default function SiteLogin({ message, onSuccess }: SiteLoginProps) {
             <div className="flex items-center justify-center gap-2 mb-2">
               <Shield className="h-5 w-5 text-[#722f37]" />
               <CardTitle className="text-xl font-bold text-stone-800">
-                موقع محمي
+                Protected Site
               </CardTitle>
             </div>
             <CardDescription className="text-stone-500">

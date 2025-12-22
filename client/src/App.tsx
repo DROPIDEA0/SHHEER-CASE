@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -36,21 +37,77 @@ function Router() {
       {/* Admin Login */}
       <Route path={"/admin/login"} component={AdminLogin} />
       
-      {/* Admin Routes */}
-      <Route path={"/admin"} component={Dashboard} />
-      <Route path={"/admin/dashboard"} component={Dashboard} />
-      <Route path={"/admin/header"} component={HeaderAdmin} />
-      <Route path={"/admin/hero"} component={HeroAdmin} />
-      <Route path={"/admin/timeline"} component={TimelineAdmin} />
-      <Route path={"/admin/timeline-categories"} component={TimelineCategoriesAdmin} />
-      <Route path={"/admin/evidence"} component={EvidenceAdmin} />
-      <Route path={"/admin/evidence-categories"} component={EvidenceCategoriesAdmin} />
-      <Route path={"/admin/videos"} component={VideosAdmin} />
-      <Route path={"/admin/parties"} component={PartiesAdmin} />
-      <Route path={"/admin/footer"} component={FooterAdmin} />
-      <Route path={"/admin/settings"} component={SettingsAdmin} />
-      <Route path={"/admin/users"} component={AdminUsersAdmin} />
-      <Route path={"/admin/site-protection"} component={SiteProtectionAdmin} />
+      {/* Admin Routes - Protected by Admin Authentication */}
+      <Route path={"/admin"}>
+        <AdminProtectedRoute>
+          <Dashboard />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/dashboard"}>
+        <AdminProtectedRoute>
+          <Dashboard />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/header"}>
+        <AdminProtectedRoute>
+          <HeaderAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/hero"}>
+        <AdminProtectedRoute>
+          <HeroAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/timeline"}>
+        <AdminProtectedRoute>
+          <TimelineAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/timeline-categories"}>
+        <AdminProtectedRoute>
+          <TimelineCategoriesAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/evidence"}>
+        <AdminProtectedRoute>
+          <EvidenceAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/evidence-categories"}>
+        <AdminProtectedRoute>
+          <EvidenceCategoriesAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/videos"}>
+        <AdminProtectedRoute>
+          <VideosAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/parties"}>
+        <AdminProtectedRoute>
+          <PartiesAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/footer"}>
+        <AdminProtectedRoute>
+          <FooterAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/settings"}>
+        <AdminProtectedRoute>
+          <SettingsAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/users"}>
+        <AdminProtectedRoute>
+          <AdminUsersAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/site-protection"}>
+        <AdminProtectedRoute>
+          <SiteProtectionAdmin />
+        </AdminProtectedRoute>
+      </Route>
       
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

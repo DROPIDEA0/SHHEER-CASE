@@ -141,7 +141,7 @@ export default function AdminUsersAdmin() {
             <h1 className="text-2xl font-bold text-stone-900">Admin Users Management</h1>
             <p className="text-stone-500 mt-1">Manage admin panel users and their permissions</p>
           </div>
-          <Button onClick={openNewDialog} className="bg-olive-700 hover:bg-olive-800">
+          <Button onClick={openNewDialog} className="bg-[#722f37] hover:bg-[#8b3a44] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200">
             <Plus className="h-4 w-4 mr-2" />
             Add Admin User
           </Button>
@@ -325,7 +325,7 @@ export default function AdminUsersAdmin() {
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-olive-700 hover:bg-olive-800"
+                  className="bg-[#722f37] hover:bg-[#8b3a44] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {(createMutation.isPending || updateMutation.isPending) && (

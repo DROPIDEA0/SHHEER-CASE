@@ -204,7 +204,7 @@ export default function SiteProtectionAdmin() {
 
             <Button 
               onClick={handleSaveProtection}
-              className="bg-olive-700 hover:bg-olive-800"
+              className="bg-[#722f37] hover:bg-[#8b3a44] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               disabled={updateProtectionMutation.isPending}
             >
               {updateProtectionMutation.isPending && (
@@ -223,7 +223,7 @@ export default function SiteProtectionAdmin() {
                 <CardTitle>Authorized Users</CardTitle>
                 <CardDescription>Users who can access the site when protection is enabled</CardDescription>
               </div>
-              <Button onClick={openNewDialog} className="bg-olive-700 hover:bg-olive-800">
+              <Button onClick={openNewDialog} className="bg-[#722f37] hover:bg-[#8b3a44] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200">
                 <Plus className="h-4 w-4 mr-2" />
                 Add User
               </Button>
@@ -361,7 +361,7 @@ export default function SiteProtectionAdmin() {
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-olive-700 hover:bg-olive-800"
+                  className="bg-[#722f37] hover:bg-[#8b3a44] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
                   disabled={createUserMutation.isPending || updateUserMutation.isPending}
                 >
                   {(createUserMutation.isPending || updateUserMutation.isPending) && (

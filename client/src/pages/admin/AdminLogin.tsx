@@ -18,6 +18,9 @@ export default function AdminLogin() {
   const loginMutation = trpc.adminAuth.login.useMutation({
     onSuccess: (data) => {
       if (data.success) {
+        // Save user data to localStorage as backup
+        localStorage.setItem('admin_user', JSON.stringify(data.user));
+        console.log('[AdminLogin] Login successful, redirecting to /admin');
         setLocation('/admin');
       } else {
         setError(data.message || 'Login failed');

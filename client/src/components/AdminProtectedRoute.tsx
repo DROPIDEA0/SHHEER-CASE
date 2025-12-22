@@ -18,9 +18,15 @@ export default function AdminProtectedRoute({ children }: AdminProtectedRoutePro
   const { data: user, isLoading } = trpc.adminAuth.me.useQuery();
   const logoutMutation = trpc.adminAuth.logout.useMutation({
     onSuccess: () => {
+      // Clear localStorage on logout
+      localStorage.removeItem('admin_user');
       setLocation('/admin/login');
     },
   });
+
+  // Check localStorage as backup if cookie fails
+  const localUser = localStorage.getItem('admin_user');
+  const hasLocalSession = localUser !== null;
 
   // Update last activity time on user interaction
   const updateActivity = useCallback(() => {
@@ -61,15 +67,17 @@ export default function AdminProtectedRoute({ children }: AdminProtectedRoutePro
   // Check authentication status
   useEffect(() => {
     if (!isLoading) {
-      if (!user) {
+      if (!user && !hasLocalSession) {
         // Not authenticated - redirect to login
+        console.log('[AdminProtectedRoute] No session found, redirecting to login');
         setLocation('/admin/login');
       } else {
         // Authenticated - allow access
+        console.log('[AdminProtectedRoute] Session verified, granting access');
         setIsChecking(false);
       }
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, hasLocalSession, setLocation]);
 
   if (isChecking || isLoading) {
     return (

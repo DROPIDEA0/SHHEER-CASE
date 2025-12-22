@@ -962,7 +962,7 @@ function getSessionCookieOptions(req) {
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
+    sameSite: "lax",
     secure: isSecureRequest(req)
   };
 }

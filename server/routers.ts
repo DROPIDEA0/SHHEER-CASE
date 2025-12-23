@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { storagePut } from "./storage";
+import { saveFile, saveBase64Image } from "./fileUpload";
 import { TRPCError } from "@trpc/server";
 
 // Admin-only procedure - supports both OAuth and local admin authentication
@@ -416,6 +417,27 @@ export const appRouter = router({
       .mutation(({ input }) => db.updateVideo(input.id, input.data)),
     deleteVideo: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteVideo(input.id)),
 
+    // Official Documents
+    getOfficialDocuments: adminProcedure.query(() => db.getOfficialDocuments()),
+    createOfficialDocument: adminProcedure
+      .input(z.object({ title: z.string(), description: z.string().nullable().optional(), fileUrl: z.string(), fileName: z.string().nullable().optional(), fileType: z.string().nullable().optional(), fileSize: z.string().nullable().optional(), category: z.string().nullable().optional(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
+      .mutation(({ input }) => db.createOfficialDocument(input)),
+    updateOfficialDocument: adminProcedure
+      .input(z.object({ id: z.number(), data: z.object({ title: z.string().optional(), description: z.string().nullable().optional(), fileUrl: z.string().optional(), fileName: z.string().nullable().optional(), fileType: z.string().nullable().optional(), fileSize: z.string().nullable().optional(), category: z.string().nullable().optional(), displayOrder: z.number().optional(), isActive: z.boolean().optional() }) }))
+      .mutation(({ input }) => db.updateOfficialDocument(input.id, input.data)),
+    deleteOfficialDocument: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteOfficialDocument(input.id)),
+
+    uploadDocument: adminProcedure
+      .input(z.object({ fileName: z.string(), fileData: z.string(), contentType: z.string() }))
+      .mutation(async ({ input }) => {
+        try {
+          const result = await saveFile(input.fileData, input.fileName, 'documents');
+          return result;
+        } catch (error: any) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+        }
+      }),
+
     getFooterContent: adminProcedure.query(() => db.getFooterContent()),
     upsertFooterContent: adminProcedure
       .input(z.object({ companyName: z.string().nullable().optional(), companySubtitle: z.string().nullable().optional(), aboutText: z.string().nullable().optional(), quickLinks: z.any().optional(), contactAddress: z.string().nullable().optional(), contactPhone: z.string().nullable().optional(), contactWebsite: z.string().nullable().optional(), legalDisclaimer: z.string().nullable().optional(), commercialReg: z.string().nullable().optional() }))
@@ -424,19 +446,23 @@ export const appRouter = router({
     uploadFile: adminProcedure
       .input(z.object({ fileName: z.string(), fileData: z.string(), contentType: z.string() }))
       .mutation(async ({ input }) => {
-        const buffer = Buffer.from(input.fileData, 'base64');
-        const fileKey = `evidence/${Date.now()}-${input.fileName}`;
-        const result = await storagePut(fileKey, buffer, input.contentType);
-        return result;
+        try {
+          const result = await saveFile(input.fileData, input.fileName, 'evidence');
+          return result;
+        } catch (error: any) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+        }
       }),
 
     uploadVideo: adminProcedure
       .input(z.object({ fileName: z.string(), fileData: z.string(), contentType: z.string() }))
       .mutation(async ({ input }) => {
-        const buffer = Buffer.from(input.fileData, 'base64');
-        const fileKey = `videos/${Date.now()}-${input.fileName}`;
-        const result = await storagePut(fileKey, buffer, input.contentType);
-        return result;
+        try {
+          const result = await saveFile(input.fileData, input.fileName, 'videos');
+          return result;
+        } catch (error: any) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+        }
       }),
 
     // Timeline Categories
@@ -477,10 +503,24 @@ export const appRouter = router({
       .mutation(({ input }) => db.updateAdminSetting(input.key, input.value)),
     uploadAdminLogo: adminProcedure
       .input(z.object({ imageData: z.string() }))
-      .mutation(({ input }) => db.uploadAdminLogo(input.imageData)),
+      .mutation(async ({ input }) => {
+        try {
+          const result = await saveBase64Image(input.imageData, 'logos');
+          return db.updateAdminSetting('admin_logo', result.url, 'image');
+        } catch (error: any) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+        }
+      }),
     uploadFavicon: adminProcedure
       .input(z.object({ imageData: z.string() }))
-      .mutation(({ input }) => db.uploadFavicon(input.imageData)),
+      .mutation(async ({ input }) => {
+        try {
+          const result = await saveBase64Image(input.imageData, 'favicons');
+          return db.updateAdminSetting('favicon', result.url, 'image');
+        } catch (error: any) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+        }
+      }),
     changeAdminPassword: adminProcedure
       .input(z.object({ currentPassword: z.string(), newPassword: z.string() }))
       .mutation(async ({ input, ctx }) => {
@@ -494,6 +534,12 @@ export const appRouter = router({
           throw new TRPCError({ code: 'BAD_REQUEST', message: error.message || 'Failed to change password' });
         }
       }),
+
+    // WhatsApp Settings
+    getWhatsAppSettings: publicProcedure.query(() => db.getWhatsAppSettings()),
+    upsertWhatsAppSettings: adminProcedure
+      .input(z.object({ isEnabled: z.boolean().optional(), phoneNumber: z.string().optional(), message: z.string().optional(), position: z.string().optional() }))
+      .mutation(({ input }) => db.upsertWhatsAppSettings(input)),
   }),
 });
 

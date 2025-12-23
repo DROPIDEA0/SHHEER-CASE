@@ -6,6 +6,8 @@ import OverviewSection from '@/components/OverviewSection';
 import Timeline from '@/components/Timeline';
 import EvidenceGallery from '@/components/EvidenceGallery';
 import VideoSection from '@/components/VideoSection';
+import OfficialDocuments from '@/components/OfficialDocuments';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import Footer from '@/components/Footer';
 import { Skeleton } from '@/components/ui/skeleton';
 import SiteLogin from './SiteLogin';
@@ -203,6 +205,10 @@ export default function Home() {
       <EvidenceGallery evidence={transformedEvidence} />
       
       <VideoSection videos={transformedVideos} />
+      
+      <OfficialDocuments />
+      
+      <WhatsAppButton />
       
       {transformedFooter && (
         <Footer 

@@ -1,8 +1,8 @@
 // server/_core/index.ts
 import dotenv from "dotenv";
-import path3 from "path";
-import fs2 from "fs";
-import { fileURLToPath } from "url";
+import path4 from "path";
+import fs3 from "fs";
+import { fileURLToPath as fileURLToPath2 } from "url";
 import express2 from "express";
 import { createServer } from "http";
 import net from "net";
@@ -43,6 +43,15 @@ var siteSettings = mysqlTable("site_settings", {
   key: varchar("key", { length: 100 }).notNull().unique(),
   value: text("value"),
   type: varchar("type", { length: 50 }).default("text").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+});
+var whatsappSettings = mysqlTable("whatsapp_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  isEnabled: boolean("isEnabled").default(false).notNull(),
+  phoneNumber: varchar("phoneNumber", { length: 50 }),
+  message: text("message"),
+  position: varchar("position", { length: 20 }).default("bottom-right"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
 });
@@ -137,6 +146,20 @@ var videos = mysqlTable("videos", {
   videoUrl: text("videoUrl").notNull(),
   thumbnailUrl: text("thumbnailUrl"),
   duration: varchar("duration", { length: 50 }),
+  displayOrder: int("displayOrder").default(0),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+});
+var officialDocuments = mysqlTable("official_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  fileUrl: text("fileUrl").notNull(),
+  fileName: varchar("fileName", { length: 300 }),
+  fileType: varchar("fileType", { length: 50 }),
+  fileSize: varchar("fileSize", { length: 50 }),
+  category: varchar("category", { length: 100 }),
   displayOrder: int("displayOrder").default(0),
   isActive: boolean("isActive").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -635,6 +658,35 @@ async function deleteVideo(id) {
   await db.delete(videos).where(eq(videos.id, id));
   return true;
 }
+async function getOfficialDocuments() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(officialDocuments).orderBy(asc(officialDocuments.displayOrder));
+}
+async function getOfficialDocument(id) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(officialDocuments).where(eq(officialDocuments.id, id)).limit(1);
+  return result[0] || null;
+}
+async function createOfficialDocument(data) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(officialDocuments).values(data);
+  return data;
+}
+async function updateOfficialDocument(id, data) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(officialDocuments).set(data).where(eq(officialDocuments.id, id));
+  return getOfficialDocument(id);
+}
+async function deleteOfficialDocument(id) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, id));
+  return true;
+}
 async function getFooterContent() {
   const db = await getDb();
   if (!db) return null;
@@ -943,11 +995,27 @@ async function changeAdminPassword(adminId, currentPassword, newPassword) {
   await db.update(adminUsers).set({ password: hashedPassword }).where(eq(adminUsers.id, adminId));
   return true;
 }
-async function uploadAdminLogo(imageData) {
-  return updateAdminSetting("admin_logo", imageData, "image");
+async function getWhatsAppSettings() {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(whatsappSettings).limit(1);
+  return result[0] || null;
 }
-async function uploadFavicon(imageData) {
-  return updateAdminSetting("favicon", imageData, "image");
+async function upsertWhatsAppSettings(data) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await getWhatsAppSettings();
+  if (existing) {
+    await db.update(whatsappSettings).set(data).where(eq(whatsappSettings.id, existing.id));
+  } else {
+    await db.insert(whatsappSettings).values({
+      isEnabled: data.isEnabled ?? false,
+      phoneNumber: data.phoneNumber || "",
+      message: data.message || "",
+      position: data.position || "bottom-right"
+    });
+  }
+  return getWhatsAppSettings();
 }
 
 // server/_core/cookies.ts
@@ -1381,56 +1449,55 @@ var systemRouter = router({
 // server/routers.ts
 import { z as z2 } from "zod";
 
-// server/storage.ts
-function getStorageConfig() {
-  const baseUrl = ENV.forgeApiUrl;
-  const apiKey = ENV.forgeApiKey;
-  if (!baseUrl || !apiKey) {
-    throw new Error(
-      "Storage proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
-    );
-  }
-  return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
-}
-function buildUploadUrl(baseUrl, relKey) {
-  const url = new URL("v1/storage/upload", ensureTrailingSlash(baseUrl));
-  url.searchParams.set("path", normalizeKey(relKey));
-  return url;
-}
-function ensureTrailingSlash(value) {
-  return value.endsWith("/") ? value : `${value}/`;
-}
-function normalizeKey(relKey) {
-  return relKey.replace(/^\/+/, "");
-}
-function toFormData(data, contentType, fileName) {
-  const blob = typeof data === "string" ? new Blob([data], { type: contentType }) : new Blob([data], { type: contentType });
-  const form = new FormData();
-  form.append("file", blob, fileName || "file");
-  return form;
-}
-function buildAuthHeaders(apiKey) {
-  return { Authorization: `Bearer ${apiKey}` };
-}
-async function storagePut(relKey, data, contentType = "application/octet-stream") {
-  const { baseUrl, apiKey } = getStorageConfig();
-  const key = normalizeKey(relKey);
-  const uploadUrl = buildUploadUrl(baseUrl, key);
-  const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
-  const response = await fetch(uploadUrl, {
-    method: "POST",
-    headers: buildAuthHeaders(apiKey),
-    body: formData
+// server/fileUpload.ts
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+var __filename = fileURLToPath(import.meta.url);
+var __dirname = path.dirname(__filename);
+var projectRoot = path.resolve(__dirname, "..");
+var UPLOAD_DIRS = {
+  logos: path.join(projectRoot, "dist", "public", "uploads", "logos"),
+  favicons: path.join(projectRoot, "dist", "public", "uploads", "favicons"),
+  videos: path.join(projectRoot, "dist", "public", "uploads", "videos"),
+  evidence: path.join(projectRoot, "dist", "public", "uploads", "evidence"),
+  documents: path.join(projectRoot, "dist", "public", "uploads", "documents")
+};
+function ensureUploadDirectories() {
+  Object.values(UPLOAD_DIRS).forEach((dir) => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`Created upload directory: ${dir}`);
+    }
   });
-  if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
-    throw new Error(
-      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
-    );
-  }
-  const url = (await response.json()).url;
-  return { key, url };
 }
+async function saveFile(fileData, fileName, category) {
+  ensureUploadDirectories();
+  const timestamp2 = Date.now();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const uniqueFileName = `${timestamp2}-${sanitizedFileName}`;
+  const targetDir = UPLOAD_DIRS[category];
+  const filePath = path.join(targetDir, uniqueFileName);
+  const buffer = Buffer.from(fileData, "base64");
+  fs.writeFileSync(filePath, buffer);
+  const publicUrl = `/uploads/${category}/${uniqueFileName}`;
+  console.log(`File saved: ${filePath} -> ${publicUrl}`);
+  return {
+    key: `${category}/${uniqueFileName}`,
+    url: publicUrl
+  };
+}
+async function saveBase64Image(imageData, category) {
+  const matches = imageData.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error("Invalid base64 image data");
+  }
+  const extension = matches[1];
+  const base64Data = matches[2];
+  const fileName = `image-${Date.now()}.${extension}`;
+  return saveFile(base64Data, fileName, category);
+}
+ensureUploadDirectories();
 
 // server/routers.ts
 import { TRPCError as TRPCError3 } from "@trpc/server";
@@ -1729,19 +1796,36 @@ var appRouter = router({
     createVideo: adminProcedure2.input(z2.object({ title: z2.string(), description: z2.string().nullable().optional(), videoUrl: z2.string(), thumbnailUrl: z2.string().nullable().optional(), duration: z2.string().nullable().optional(), displayOrder: z2.number().default(0), isActive: z2.boolean().default(true) })).mutation(({ input }) => createVideo(input)),
     updateVideo: adminProcedure2.input(z2.object({ id: z2.number(), data: z2.object({ title: z2.string().optional(), description: z2.string().nullable().optional(), videoUrl: z2.string().optional(), thumbnailUrl: z2.string().nullable().optional(), duration: z2.string().nullable().optional(), displayOrder: z2.number().optional(), isActive: z2.boolean().optional() }) })).mutation(({ input }) => updateVideo(input.id, input.data)),
     deleteVideo: adminProcedure2.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteVideo(input.id)),
+    // Official Documents
+    getOfficialDocuments: adminProcedure2.query(() => getOfficialDocuments()),
+    createOfficialDocument: adminProcedure2.input(z2.object({ title: z2.string(), description: z2.string().nullable().optional(), fileUrl: z2.string(), fileName: z2.string().nullable().optional(), fileType: z2.string().nullable().optional(), fileSize: z2.string().nullable().optional(), category: z2.string().nullable().optional(), displayOrder: z2.number().default(0), isActive: z2.boolean().default(true) })).mutation(({ input }) => createOfficialDocument(input)),
+    updateOfficialDocument: adminProcedure2.input(z2.object({ id: z2.number(), data: z2.object({ title: z2.string().optional(), description: z2.string().nullable().optional(), fileUrl: z2.string().optional(), fileName: z2.string().nullable().optional(), fileType: z2.string().nullable().optional(), fileSize: z2.string().nullable().optional(), category: z2.string().nullable().optional(), displayOrder: z2.number().optional(), isActive: z2.boolean().optional() }) })).mutation(({ input }) => updateOfficialDocument(input.id, input.data)),
+    deleteOfficialDocument: adminProcedure2.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteOfficialDocument(input.id)),
+    uploadDocument: adminProcedure2.input(z2.object({ fileName: z2.string(), fileData: z2.string(), contentType: z2.string() })).mutation(async ({ input }) => {
+      try {
+        const result = await saveFile(input.fileData, input.fileName, "documents");
+        return result;
+      } catch (error) {
+        throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      }
+    }),
     getFooterContent: adminProcedure2.query(() => getFooterContent()),
     upsertFooterContent: adminProcedure2.input(z2.object({ companyName: z2.string().nullable().optional(), companySubtitle: z2.string().nullable().optional(), aboutText: z2.string().nullable().optional(), quickLinks: z2.any().optional(), contactAddress: z2.string().nullable().optional(), contactPhone: z2.string().nullable().optional(), contactWebsite: z2.string().nullable().optional(), legalDisclaimer: z2.string().nullable().optional(), commercialReg: z2.string().nullable().optional() })).mutation(({ input }) => upsertFooterContent(input)),
     uploadFile: adminProcedure2.input(z2.object({ fileName: z2.string(), fileData: z2.string(), contentType: z2.string() })).mutation(async ({ input }) => {
-      const buffer = Buffer.from(input.fileData, "base64");
-      const fileKey = `evidence/${Date.now()}-${input.fileName}`;
-      const result = await storagePut(fileKey, buffer, input.contentType);
-      return result;
+      try {
+        const result = await saveFile(input.fileData, input.fileName, "evidence");
+        return result;
+      } catch (error) {
+        throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      }
     }),
     uploadVideo: adminProcedure2.input(z2.object({ fileName: z2.string(), fileData: z2.string(), contentType: z2.string() })).mutation(async ({ input }) => {
-      const buffer = Buffer.from(input.fileData, "base64");
-      const fileKey = `videos/${Date.now()}-${input.fileName}`;
-      const result = await storagePut(fileKey, buffer, input.contentType);
-      return result;
+      try {
+        const result = await saveFile(input.fileData, input.fileName, "videos");
+        return result;
+      } catch (error) {
+        throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      }
     }),
     // Timeline Categories
     getTimelineCategories: adminProcedure2.query(() => getTimelineCategories()),
@@ -1760,8 +1844,22 @@ var appRouter = router({
     // Admin Settings (logo, favicon, etc.)
     getAdminSettings: adminProcedure2.query(() => getAdminSettings()),
     updateAdminSetting: adminProcedure2.input(z2.object({ key: z2.string(), value: z2.string() })).mutation(({ input }) => updateAdminSetting(input.key, input.value)),
-    uploadAdminLogo: adminProcedure2.input(z2.object({ imageData: z2.string() })).mutation(({ input }) => uploadAdminLogo(input.imageData)),
-    uploadFavicon: adminProcedure2.input(z2.object({ imageData: z2.string() })).mutation(({ input }) => uploadFavicon(input.imageData)),
+    uploadAdminLogo: adminProcedure2.input(z2.object({ imageData: z2.string() })).mutation(async ({ input }) => {
+      try {
+        const result = await saveBase64Image(input.imageData, "logos");
+        return updateAdminSetting("admin_logo", result.url, "image");
+      } catch (error) {
+        throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      }
+    }),
+    uploadFavicon: adminProcedure2.input(z2.object({ imageData: z2.string() })).mutation(async ({ input }) => {
+      try {
+        const result = await saveBase64Image(input.imageData, "favicons");
+        return updateAdminSetting("favicon", result.url, "image");
+      } catch (error) {
+        throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+      }
+    }),
     changeAdminPassword: adminProcedure2.input(z2.object({ currentPassword: z2.string(), newPassword: z2.string() })).mutation(async ({ input, ctx }) => {
       const sessionCookie = ctx.req.cookies?.["admin_session"];
       if (!sessionCookie) throw new TRPCError3({ code: "UNAUTHORIZED", message: "Not logged in" });
@@ -1771,7 +1869,10 @@ var appRouter = router({
       } catch (error) {
         throw new TRPCError3({ code: "BAD_REQUEST", message: error.message || "Failed to change password" });
       }
-    })
+    }),
+    // WhatsApp Settings
+    getWhatsAppSettings: publicProcedure.query(() => getWhatsAppSettings()),
+    upsertWhatsAppSettings: adminProcedure2.input(z2.object({ isEnabled: z2.boolean().optional(), phoneNumber: z2.string().optional(), message: z2.string().optional(), position: z2.string().optional() })).mutation(({ input }) => upsertWhatsAppSettings(input))
   })
 });
 
@@ -1838,31 +1939,31 @@ async function createContext(opts) {
 
 // server/_core/vite.ts
 import express from "express";
-import fs from "fs";
+import fs2 from "fs";
 import { nanoid } from "nanoid";
-import path2 from "path";
+import path3 from "path";
 import { createServer as createViteServer } from "vite";
 
 // vite.config.ts
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import path from "path";
+import path2 from "path";
 import { defineConfig } from "vite";
 var plugins = [react(), tailwindcss()];
 var vite_config_default = defineConfig({
   plugins,
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets")
+      "@": path2.resolve(import.meta.dirname, "client", "src"),
+      "@shared": path2.resolve(import.meta.dirname, "shared"),
+      "@assets": path2.resolve(import.meta.dirname, "attached_assets")
     }
   },
-  envDir: path.resolve(import.meta.dirname),
-  root: path.resolve(import.meta.dirname, "client"),
-  publicDir: path.resolve(import.meta.dirname, "client", "public"),
+  envDir: path2.resolve(import.meta.dirname),
+  root: path2.resolve(import.meta.dirname, "client"),
+  publicDir: path2.resolve(import.meta.dirname, "client", "public"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path2.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true
   },
   server: {
@@ -1901,13 +2002,13 @@ async function setupVite(app, server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
-      const clientTemplate = path2.resolve(
+      const clientTemplate = path3.resolve(
         import.meta.dirname,
         "../..",
         "client",
         "index.html"
       );
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      let template = await fs2.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`
@@ -1921,33 +2022,33 @@ async function setupVite(app, server) {
   });
 }
 function serveStatic(app) {
-  const distPath = process.env.NODE_ENV === "development" ? path2.resolve(import.meta.dirname, "../..", "dist", "public") : path2.resolve(import.meta.dirname, "public");
-  if (!fs.existsSync(distPath)) {
+  const distPath = process.env.NODE_ENV === "development" ? path3.resolve(import.meta.dirname, "../..", "dist", "public") : path3.resolve(import.meta.dirname, "public");
+  if (!fs2.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
     );
   }
   app.use(express.static(distPath));
   app.use("*", (_req, res) => {
-    res.sendFile(path2.resolve(distPath, "index.html"));
+    res.sendFile(path3.resolve(distPath, "index.html"));
   });
 }
 
 // server/_core/index.ts
-var __filename = fileURLToPath(import.meta.url);
-var __dirname = path3.dirname(__filename);
+var __filename2 = fileURLToPath2(import.meta.url);
+var __dirname2 = path4.dirname(__filename2);
 var envPaths = [
-  path3.resolve(process.cwd(), ".env"),
-  path3.resolve(process.cwd(), ".env.production"),
-  path3.resolve(__dirname, "../../.env"),
-  path3.resolve(__dirname, "../../.env.production")
+  path4.resolve(process.cwd(), ".env"),
+  path4.resolve(process.cwd(), ".env.production"),
+  path4.resolve(__dirname2, "../../.env"),
+  path4.resolve(__dirname2, "../../.env.production")
 ];
 console.log("[Env] Current working directory:", process.cwd());
-console.log("[Env] Script directory:", __dirname);
+console.log("[Env] Script directory:", __dirname2);
 var envLoaded = false;
 for (const envPath of envPaths) {
   console.log(`[Env] Checking: ${envPath}`);
-  if (fs2.existsSync(envPath)) {
+  if (fs3.existsSync(envPath)) {
     console.log(`[Env] Loading environment from: ${envPath}`);
     const result = dotenv.config({ path: envPath });
     if (result.error) {

@@ -17,7 +17,9 @@ import {
   X,
   Tag,
   Shield,
-  UserCog
+  UserCog,
+  FileText as DocumentIcon,
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -48,7 +50,9 @@ const navItems = [
   { href: '/admin/evidence', label: 'Evidence', icon: FolderOpen },
   { href: '/admin/evidence-categories', label: 'Evidence Categories', icon: Tag },
   { href: '/admin/videos', label: 'Videos', icon: Video },
+  { href: '/admin/official-documents', label: 'Official Documents', icon: DocumentIcon },
   { href: '/admin/footer', label: 'Footer', icon: PanelBottom },
+  { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
   { href: '/admin/site-protection', label: 'Site Protection', icon: Shield },
   { href: '/admin/users', label: 'Admin Users', icon: UserCog },
 ];

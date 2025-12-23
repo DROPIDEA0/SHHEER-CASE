@@ -41,6 +41,22 @@ export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = typeof siteSettings.$inferInsert;
 
 /**
+ * WhatsApp Settings - Floating WhatsApp button configuration
+ */
+export const whatsappSettings = mysqlTable("whatsapp_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  isEnabled: boolean("isEnabled").default(false).notNull(),
+  phoneNumber: varchar("phoneNumber", { length: 50 }),
+  message: text("message"),
+  position: varchar("position", { length: 20 }).default("bottom-right"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WhatsAppSetting = typeof whatsappSettings.$inferSelect;
+export type InsertWhatsAppSetting = typeof whatsappSettings.$inferInsert;
+
+/**
  * Header Content - Navigation and branding
  */
 export const headerContent = mysqlTable("header_content", {
@@ -191,6 +207,27 @@ export const videos = mysqlTable("videos", {
 
 export type Video = typeof videos.$inferSelect;
 export type InsertVideo = typeof videos.$inferInsert;
+
+/**
+ * Official Documents - Large files like profiles, court decisions, studies
+ */
+export const officialDocuments = mysqlTable("official_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  fileUrl: text("fileUrl").notNull(),
+  fileName: varchar("fileName", { length: 300 }),
+  fileType: varchar("fileType", { length: 50 }),
+  fileSize: varchar("fileSize", { length: 50 }),
+  category: varchar("category", { length: 100 }),
+  displayOrder: int("displayOrder").default(0),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OfficialDocument = typeof officialDocuments.$inferSelect;
+export type InsertOfficialDocument = typeof officialDocuments.$inferInsert;
 
 /**
  * Footer Content - Footer sections and links

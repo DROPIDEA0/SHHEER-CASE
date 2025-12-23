@@ -12,11 +12,13 @@ import {
   timelineEvents, InsertTimelineEvent,
   evidenceItems, InsertEvidenceItem,
   videos, InsertVideo,
+  officialDocuments, InsertOfficialDocument,
   footerContent, InsertFooterContent,
   timelineCategories, InsertTimelineCategory,
   evidenceCategories, InsertEvidenceCategory,
   timelineEventEvidence, InsertTimelineEventEvidence,
-  adminUsers, siteAccessUsers, siteProtection, adminSettings
+  adminUsers, siteAccessUsers, siteProtection, adminSettings,
+  whatsappSettings, InsertWhatsAppSetting
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -509,6 +511,41 @@ export async function deleteVideo(id: number) {
   return true;
 }
 
+// ============ OFFICIAL DOCUMENTS ============
+export async function getOfficialDocuments() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(officialDocuments).orderBy(asc(officialDocuments.displayOrder));
+}
+
+export async function getOfficialDocument(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(officialDocuments).where(eq(officialDocuments.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function createOfficialDocument(data: InsertOfficialDocument) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(officialDocuments).values(data);
+  return data;
+}
+
+export async function updateOfficialDocument(id: number, data: Partial<InsertOfficialDocument>) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(officialDocuments).set(data).where(eq(officialDocuments.id, id));
+  return getOfficialDocument(id);
+}
+
+export async function deleteOfficialDocument(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, id));
+  return true;
+}
+
 // ============ FOOTER CONTENT ============
 export async function getFooterContent() {
   const db = await getDb();
@@ -917,4 +954,30 @@ export async function uploadAdminLogo(imageData: string) {
 
 export async function uploadFavicon(imageData: string) {
   return updateAdminSetting('favicon', imageData, 'image');
+}
+
+// ============ WHATSAPP SETTINGS ============
+export async function getWhatsAppSettings() {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(whatsappSettings).limit(1);
+  return result[0] || null;
+}
+
+export async function upsertWhatsAppSettings(data: Partial<InsertWhatsAppSetting>) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const existing = await getWhatsAppSettings();
+  if (existing) {
+    await db.update(whatsappSettings).set(data).where(eq(whatsappSettings.id, existing.id));
+  } else {
+    await db.insert(whatsappSettings).values({
+      isEnabled: data.isEnabled ?? false,
+      phoneNumber: data.phoneNumber || '',
+      message: data.message || '',
+      position: data.position || 'bottom-right',
+    });
+  }
+  return getWhatsAppSettings();
 }

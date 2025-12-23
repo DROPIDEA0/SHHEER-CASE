@@ -23,6 +23,8 @@ import SettingsAdmin from "./pages/admin/SettingsAdmin";
 import AdminUsersAdmin from "./pages/admin/AdminUsersAdmin";
 import SiteProtectionAdmin from "./pages/admin/SiteProtectionAdmin";
 import AdminLogin from "./pages/admin/AdminLogin";
+import OfficialDocumentsAdmin from "./pages/admin/OfficialDocumentsAdmin";
+import WhatsAppSettingsAdmin from "./pages/admin/WhatsAppSettingsAdmin";
 
 function Router() {
   return (
@@ -106,6 +108,16 @@ function Router() {
       <Route path={"/admin/site-protection"}>
         <AdminProtectedRoute>
           <SiteProtectionAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/official-documents"}>
+        <AdminProtectedRoute>
+          <OfficialDocumentsAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/whatsapp"}>
+        <AdminProtectedRoute>
+          <WhatsAppSettingsAdmin />
         </AdminProtectedRoute>
       </Route>
       

@@ -12,12 +12,13 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
 // Define upload directories
+// Use 'public' directory directly (not 'dist/public') to persist files across builds
 const UPLOAD_DIRS = {
-  logos: path.join(projectRoot, 'dist', 'public', 'uploads', 'logos'),
-  favicons: path.join(projectRoot, 'dist', 'public', 'uploads', 'favicons'),
-  videos: path.join(projectRoot, 'dist', 'public', 'uploads', 'videos'),
-  evidence: path.join(projectRoot, 'dist', 'public', 'uploads', 'evidence'),
-  documents: path.join(projectRoot, 'dist', 'public', 'uploads', 'documents'),
+  logos: path.join(projectRoot, 'public', 'uploads', 'logos'),
+  favicons: path.join(projectRoot, 'public', 'uploads', 'favicons'),
+  videos: path.join(projectRoot, 'public', 'uploads', 'videos'),
+  evidence: path.join(projectRoot, 'public', 'uploads', 'evidence'),
+  documents: path.join(projectRoot, 'public', 'uploads', 'documents'),
 };
 
 // Ensure upload directories exist
@@ -101,7 +102,7 @@ export async function saveBase64Image(
  */
 export async function deleteFile(fileKey: string): Promise<boolean> {
   try {
-    const filePath = path.join(projectRoot, 'dist', 'public', 'uploads', fileKey);
+    const filePath = path.join(projectRoot, 'public', 'uploads', fileKey);
     
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
@@ -122,7 +123,7 @@ export async function deleteFile(fileKey: string): Promise<boolean> {
  */
 export function getFileSize(fileKey: string): number {
   try {
-    const filePath = path.join(projectRoot, 'dist', 'public', 'uploads', fileKey);
+    const filePath = path.join(projectRoot, 'public', 'uploads', fileKey);
     const stats = fs.statSync(filePath);
     return stats.size;
   } catch (error) {

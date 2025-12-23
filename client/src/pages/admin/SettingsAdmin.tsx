@@ -1,11 +1,10 @@
-import AdminLayout from '@/components/admin/AdminLayout';
+import { useState, useRef } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { Save, Upload, User, Lock, Image, Globe, Eye, EyeOff, RefreshCw } from 'lucide-react';
 
@@ -35,15 +34,15 @@ export default function SettingsAdmin() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('جميع الحقول مطلوبة');
+      toast.error('All fields are required');
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('كلمة المرور الجديدة غير متطابقة');
+      toast.error('New passwords do not match');
       return;
     }
     if (newPassword.length < 6) {
-      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -52,12 +51,12 @@ export default function SettingsAdmin() {
         currentPassword,
         newPassword
       });
-      toast.success('تم تغيير كلمة المرور بنجاح');
+      toast.success('Password changed successfully');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
-      toast.error(error.message || 'فشل في تغيير كلمة المرور');
+      toast.error(error.message || 'Failed to change password');
     }
   };
 
@@ -67,7 +66,7 @@ export default function SettingsAdmin() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('يرجى اختيار ملف صورة');
+      toast.error('Please select an image file');
       return;
     }
 
@@ -77,10 +76,10 @@ export default function SettingsAdmin() {
       try {
         const base64 = reader.result as string;
         await uploadLogoMutation.mutateAsync({ imageData: base64 });
-        toast.success('تم رفع الشعار بنجاح');
+        toast.success('Logo uploaded successfully');
         refetchAdminSettings();
       } catch (error) {
-        toast.error('فشل في رفع الشعار');
+        toast.error('Failed to upload logo');
       }
     };
     reader.readAsDataURL(file);
@@ -92,7 +91,7 @@ export default function SettingsAdmin() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('يرجى اختيار ملف صورة');
+      toast.error('Please select an image file');
       return;
     }
 
@@ -102,89 +101,81 @@ export default function SettingsAdmin() {
       try {
         const base64 = reader.result as string;
         await uploadFaviconMutation.mutateAsync({ imageData: base64 });
-        toast.success('تم رفع الأيقونة بنجاح');
+        toast.success('Favicon uploaded successfully');
         refetchAdminSettings();
       } catch (error) {
-        toast.error('فشل في رفع الأيقونة');
+        toast.error('Failed to upload favicon');
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSaveSetting = async (key: string, value: string, type: string = 'text') => {
+  const handleSaveSetting = async (key: string, value: string, type: string) => {
     try {
       await upsertMutation.mutateAsync({ key, value, type });
-      toast.success('تم حفظ الإعداد بنجاح');
+      toast.success('Setting saved successfully');
       refetch();
     } catch (error) {
-      toast.error('فشل في حفظ الإعداد');
+      toast.error('Failed to save setting');
     }
   };
 
-  // Get current logo and favicon from admin settings
-  const currentLogo = adminSettings?.find(s => s.settingKey === 'admin_logo')?.settingValue;
-  const currentFavicon = adminSettings?.find(s => s.settingKey === 'favicon')?.settingValue;
-  const siteTitle = adminSettings?.find(s => s.settingKey === 'site_title')?.settingValue || 'SHHEER CASE';
-
   if (isLoading) {
     return (
-      <AdminLayout>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-stone-200 rounded w-1/4"></div>
-          <div className="h-64 bg-stone-200 rounded"></div>
-        </div>
-      </AdminLayout>
+      <div className="flex items-center justify-center h-96">
+        <RefreshCw className="h-8 w-8 animate-spin text-stone-400" />
+      </div>
     );
   }
 
   return (
-    <AdminLayout>
+    <div className="container mx-auto p-6 max-w-6xl">
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">الإعدادات</h1>
-          <p className="text-stone-600 mt-1">إدارة إعدادات الموقع ولوحة التحكم</p>
+          <h1 className="text-2xl font-bold text-stone-900">Settings</h1>
+          <p className="text-stone-600 mt-1">Manage site and admin panel settings</p>
         </div>
 
-        <Tabs defaultValue="account" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="account" className="space-y-6">
+          <TabsList>
             <TabsTrigger value="account" className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              الحساب
+              Account
             </TabsTrigger>
             <TabsTrigger value="security" className="flex items-center gap-2">
               <Lock className="h-4 w-4" />
-              الأمان
+              Security
             </TabsTrigger>
             <TabsTrigger value="branding" className="flex items-center gap-2">
               <Image className="h-4 w-4" />
-              العلامة التجارية
+              Branding
             </TabsTrigger>
             <TabsTrigger value="site" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
-              الموقع
+              Site
             </TabsTrigger>
           </TabsList>
 
           {/* Account Tab */}
-          <TabsContent value="account" className="mt-6">
+          <TabsContent value="account">
             <Card>
               <CardHeader>
-                <CardTitle>معلومات الحساب</CardTitle>
-                <CardDescription>تحديث معلومات حساب المدير</CardDescription>
+                <CardTitle>Account Information</CardTitle>
+                <CardDescription>Update admin account details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="adminName">الاسم</Label>
+                    <Label htmlFor="adminName">Name</Label>
                     <Input
                       id="adminName"
                       value={adminName}
                       onChange={(e) => setAdminName(e.target.value)}
-                      placeholder="اسم المدير"
+                      placeholder="Admin name"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="adminEmail">البريد الإلكتروني</Label>
+                    <Label htmlFor="adminEmail">Email</Label>
                     <Input
                       id="adminEmail"
                       type="email"
@@ -194,57 +185,57 @@ export default function SettingsAdmin() {
                     />
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={async () => {
                     try {
-                      if (adminEmail) {
-                        await updateAdminSettingMutation.mutateAsync({ 
-                          key: 'admin_email', 
-                          value: adminEmail 
-                        });
-                      }
                       if (adminName) {
-                        await updateAdminSettingMutation.mutateAsync({ 
-                          key: 'admin_name', 
-                          value: adminName 
+                        await updateAdminSettingMutation.mutateAsync({
+                          key: 'adminName',
+                          value: adminName
                         });
                       }
-                      toast.success('تم تحديث المعلومات بنجاح');
+                      if (adminEmail) {
+                        await updateAdminSettingMutation.mutateAsync({
+                          key: 'adminEmail',
+                          value: adminEmail
+                        });
+                      }
+                      toast.success('Information updated successfully');
                     } catch (error) {
-                      toast.error('فشل في تحديث المعلومات');
+                      toast.error('Failed to update information');
                     }
                   }}
-                  disabled={updateAdminSettingMutation.isPending}
+                  className="w-full md:w-auto"
                 >
-                  <Save className="h-4 w-4 ml-2" />
-                  حفظ التغييرات
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
                 </Button>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Security Tab */}
-          <TabsContent value="security" className="mt-6">
+          <TabsContent value="security">
             <Card>
               <CardHeader>
-                <CardTitle>تغيير كلمة المرور</CardTitle>
-                <CardDescription>تحديث كلمة مرور حساب المدير</CardDescription>
+                <CardTitle>Change Password</CardTitle>
+                <CardDescription>Update admin account password</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">كلمة المرور الحالية</Label>
+                  <Label htmlFor="currentPassword">Current Password</Label>
                   <div className="relative">
                     <Input
                       id="currentPassword"
                       type={showCurrentPassword ? 'text' : 'password'}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="أدخل كلمة المرور الحالية"
+                      placeholder="Enter current password"
                     />
                     <button
                       type="button"
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-700"
                     >
                       {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -252,19 +243,19 @@ export default function SettingsAdmin() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
+                  <Label htmlFor="newPassword">New Password</Label>
                   <div className="relative">
                     <Input
                       id="newPassword"
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="أدخل كلمة المرور الجديدة"
+                      placeholder="Enter new password"
                     />
                     <button
                       type="button"
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
                       onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-700"
                     >
                       {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -272,32 +263,33 @@ export default function SettingsAdmin() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">تأكيد كلمة المرور الجديدة</Label>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="أعد إدخال كلمة المرور الجديدة"
+                    placeholder="Re-enter new password"
                   />
                 </div>
 
-                <Button 
+                <Button
                   onClick={handleChangePassword}
                   disabled={changePasswordMutation.isPending}
+                  className="w-full md:w-auto"
                 >
                   {changePasswordMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <Lock className="h-4 w-4 ml-2" />
+                    <Lock className="h-4 w-4 mr-2" />
                   )}
-                  تغيير كلمة المرور
+                  Change Password
                 </Button>
 
                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-sm text-amber-800">
-                    <strong>ملاحظة:</strong> كلمة المرور الافتراضية هي <code className="bg-amber-100 px-1 rounded">admin123</code>. 
-                    يُنصح بتغييرها فوراً لأسباب أمنية.
+                    <strong>Note:</strong> The default password is <code className="bg-amber-100 px-1 rounded">admin123</code>. 
+                    It is recommended to change it immediately for security reasons.
                   </p>
                 </div>
               </CardContent>
@@ -305,32 +297,32 @@ export default function SettingsAdmin() {
           </TabsContent>
 
           {/* Branding Tab */}
-          <TabsContent value="branding" className="mt-6">
+          <TabsContent value="branding" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Logo Upload */}
               <Card>
                 <CardHeader>
-                  <CardTitle>شعار لوحة التحكم</CardTitle>
-                  <CardDescription>رفع شعار يظهر في لوحة التحكم</CardDescription>
+                  <CardTitle>Admin Panel Logo</CardTitle>
+                  <CardDescription>Upload a logo for the admin panel</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="border-2 border-dashed border-stone-300 rounded-lg p-6 text-center">
-                    {currentLogo ? (
-                      <div className="space-y-4">
-                        <img 
-                          src={currentLogo} 
-                          alt="Admin Logo" 
+                  <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-stone-300 rounded-lg">
+                    {adminSettings?.adminLogoUrl ? (
+                      <div className="space-y-2 text-center">
+                        <img
+                          src={adminSettings.adminLogoUrl}
+                          alt="Admin Logo"
                           className="max-h-24 mx-auto object-contain"
                         />
-                        <p className="text-sm text-stone-500">الشعار الحالي</p>
+                        <p className="text-sm text-stone-500">Current logo</p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <Image className="h-12 w-12 mx-auto text-stone-400" />
-                        <p className="text-sm text-stone-500">لم يتم رفع شعار بعد</p>
+                        <p className="text-sm text-stone-500">No logo uploaded yet</p>
                       </div>
                     )}
                   </div>
+
                   <input
                     ref={logoInputRef}
                     type="file"
@@ -338,41 +330,41 @@ export default function SettingsAdmin() {
                     onChange={handleLogoUpload}
                     className="hidden"
                   />
-                  <Button 
+                  <Button
                     onClick={() => logoInputRef.current?.click()}
                     disabled={uploadLogoMutation.isPending}
                     className="w-full"
                   >
-                    <Upload className="h-4 w-4 ml-2" />
-                    {uploadLogoMutation.isPending ? 'جاري الرفع...' : 'رفع شعار جديد'}
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadLogoMutation.isPending ? 'Uploading...' : 'Upload New Logo'}
                   </Button>
                 </CardContent>
               </Card>
 
-              {/* Favicon Upload */}
               <Card>
                 <CardHeader>
-                  <CardTitle>أيقونة الموقع (Favicon)</CardTitle>
-                  <CardDescription>رفع أيقونة تظهر في تبويب المتصفح</CardDescription>
+                  <CardTitle>Site Favicon</CardTitle>
+                  <CardDescription>Upload an icon for the browser tab</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="border-2 border-dashed border-stone-300 rounded-lg p-6 text-center">
-                    {currentFavicon ? (
-                      <div className="space-y-4">
-                        <img 
-                          src={currentFavicon} 
-                          alt="Favicon" 
+                  <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-stone-300 rounded-lg">
+                    {adminSettings?.faviconUrl ? (
+                      <div className="space-y-2 text-center">
+                        <img
+                          src={adminSettings.faviconUrl}
+                          alt="Favicon"
                           className="h-16 w-16 mx-auto object-contain"
                         />
-                        <p className="text-sm text-stone-500">الأيقونة الحالية</p>
+                        <p className="text-sm text-stone-500">Current favicon</p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <Globe className="h-12 w-12 mx-auto text-stone-400" />
-                        <p className="text-sm text-stone-500">لم يتم رفع أيقونة بعد</p>
+                        <p className="text-sm text-stone-500">No favicon uploaded yet</p>
                       </div>
                     )}
                   </div>
+
                   <input
                     ref={faviconInputRef}
                     type="file"
@@ -380,92 +372,93 @@ export default function SettingsAdmin() {
                     onChange={handleFaviconUpload}
                     className="hidden"
                   />
-                  <Button 
+                  <Button
                     onClick={() => faviconInputRef.current?.click()}
                     disabled={uploadFaviconMutation.isPending}
                     className="w-full"
                   >
-                    <Upload className="h-4 w-4 ml-2" />
-                    {uploadFaviconMutation.isPending ? 'جاري الرفع...' : 'رفع أيقونة جديدة'}
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadFaviconMutation.isPending ? 'Uploading...' : 'Upload New Favicon'}
                   </Button>
                   <p className="text-xs text-stone-500 text-center">
-                    يُفضل استخدام صورة مربعة بحجم 32x32 أو 64x64 بكسل
+                    Recommended: Square image 32x32 or 64x64 pixels
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Site Title */}
             <Card className="mt-6">
               <CardHeader>
-                <CardTitle>عنوان الموقع</CardTitle>
-                <CardDescription>العنوان الذي يظهر في تبويب المتصفح</CardDescription>
+                <CardTitle>Site Title</CardTitle>
+                <CardDescription>The title shown in the browser tab</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-4">
                   <Input
-                    value={siteTitle}
-                    onChange={(e) => {
-                      // Update local state would go here
+                    defaultValue={settings?.find(s => s.key === 'siteTitle')?.value || ''}
+                    placeholder="Enter site title"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const input = e.target as HTMLInputElement;
+                        handleSaveSetting('siteTitle', input.value, 'string');
+                      }
                     }}
-                    placeholder="SHHEER CASE"
-                    className="flex-1"
                   />
-                  <Button 
-                    onClick={async () => {
-                      const input = document.querySelector('input[placeholder="SHHEER CASE"]') as HTMLInputElement;
-                      if (input?.value) {
+                  <Button
+                    onClick={async (e) => {
+                      const input = (e.target as HTMLElement).parentElement?.querySelector('input');
+                      if (input) {
                         try {
-                          await updateAdminSettingMutation.mutateAsync({ 
-                            key: 'site_title', 
-                            value: input.value 
+                          await upsertMutation.mutateAsync({
+                            key: 'siteTitle',
+                            type: 'string',
+                            value: input.value
                           });
-                          toast.success('تم حفظ عنوان الموقع');
+                          toast.success('Site title saved');
                           refetchAdminSettings();
                         } catch (error) {
-                          toast.error('فشل في حفظ العنوان');
+                          toast.error('Failed to save title');
                         }
                       }
                     }}
-                    disabled={updateAdminSettingMutation.isPending}
                   >
-                    <Save className="h-4 w-4 ml-2" />
-                    حفظ
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Site Settings Tab */}
-          <TabsContent value="site" className="mt-6">
+          {/* Site Tab */}
+          <TabsContent value="site">
             <Card>
               <CardHeader>
-                <CardTitle>إعدادات الموقع العامة</CardTitle>
-                <CardDescription>إعدادات متقدمة للموقع</CardDescription>
+                <CardTitle>General Site Settings</CardTitle>
+                <CardDescription>Advanced site configuration</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {settings && settings.length > 0 ? (
-                    settings.map((setting) => (
-                      <SettingRow
+                {settings && settings.length > 0 ? (
+                  <div className="space-y-4">
+                    {settings.map((setting) => (
+                      <SettingItem
                         key={setting.id}
                         setting={setting}
                         onSave={handleSaveSetting}
                         isPending={upsertMutation.isPending}
                       />
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-stone-500">
-                      <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>لا توجد إعدادات مخصصة</p>
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-stone-500">
+                    <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No custom settings</p>
+                  </div>
+                )}
 
                 {/* Add New Setting */}
                 <div className="mt-6 pt-6 border-t">
-                  <h4 className="font-medium mb-4">إضافة إعداد جديد</h4>
+                  <h4 className="font-medium mb-4">Add New Setting</h4>
                   <AddSettingForm onSave={handleSaveSetting} isPending={upsertMutation.isPending} />
                 </div>
               </CardContent>
@@ -473,71 +466,60 @@ export default function SettingsAdmin() {
           </TabsContent>
         </Tabs>
       </div>
-    </AdminLayout>
+    </div>
   );
 }
 
-// Individual setting row component
-function SettingRow({ 
-  setting, 
-  onSave, 
-  isPending 
-}: { 
-  setting: { id: number; key: string; value: string | null; type: string };
-  onSave: (key: string, value: string, type: string) => Promise<void>;
-  isPending: boolean;
-}) {
+// SettingItem Component
+function SettingItem({ setting, onSave, isPending }: { setting: any; onSave: (key: string, value: string, type: string) => void; isPending: boolean }) {
   const [value, setValue] = useState(setting.value || '');
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleSave = async () => {
-    await onSave(setting.key, value, setting.type);
+  const handleSave = () => {
+    onSave(setting.key, value, setting.type);
     setIsEditing(false);
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-lg">
+    <div className="flex items-center gap-4 p-4 border rounded-lg">
       <div className="flex-shrink-0 w-48">
         <code className="text-sm font-mono text-stone-700">{setting.key}</code>
-        <p className="text-xs text-stone-400 mt-1">النوع: {setting.type}</p>
+        <p className="text-xs text-stone-400 mt-1">Type: {setting.type}</p>
       </div>
       <div className="flex-1">
         <Input
           value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setIsEditing(true);
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => setIsEditing(true)}
+          onBlur={() => {
+            if (value !== setting.value) {
+              setIsEditing(true);
+            }
           }}
-          placeholder="أدخل القيمة"
+          placeholder="Enter value"
         />
       </div>
       {isEditing && (
         <Button onClick={handleSave} disabled={isPending} size="sm">
-          <Save className="h-4 w-4 ml-1" />
-          حفظ
+          <Save className="h-4 w-4 mr-1" />
+          Save
         </Button>
       )}
     </div>
   );
 }
 
-// Add new setting form
-function AddSettingForm({ 
-  onSave, 
-  isPending 
-}: { 
-  onSave: (key: string, value: string, type: string) => Promise<void>;
-  isPending: boolean;
-}) {
+// AddSettingForm Component
+function AddSettingForm({ onSave, isPending }: { onSave: (key: string, value: string, type: string) => void; isPending: boolean }) {
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
 
   const handleSubmit = async () => {
     if (!key) {
-      toast.error('مفتاح الإعداد مطلوب');
+      toast.error('Setting key is required');
       return;
     }
-    await onSave(key, value, 'text');
+    await onSave(key, value, 'string');
     setKey('');
     setValue('');
   };
@@ -545,7 +527,7 @@ function AddSettingForm({
   return (
     <div className="flex gap-4 items-end">
       <div className="flex-1 space-y-2">
-        <Label>المفتاح</Label>
+        <Label>Key</Label>
         <Input
           value={key}
           onChange={(e) => setKey(e.target.value)}
@@ -553,15 +535,15 @@ function AddSettingForm({
         />
       </div>
       <div className="flex-1 space-y-2">
-        <Label>القيمة</Label>
+        <Label>Value</Label>
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="القيمة"
+          placeholder="Value"
         />
       </div>
       <Button onClick={handleSubmit} disabled={isPending}>
-        إضافة
+        Add
       </Button>
     </div>
   );

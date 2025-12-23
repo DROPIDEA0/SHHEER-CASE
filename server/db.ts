@@ -958,16 +958,30 @@ export async function uploadFavicon(imageData: string) {
 }
 
 // ============ WHATSAPP SETTINGS ============
+let whatsappSettingsCache: any = null;
+let whatsappCacheTime = 0;
+const WHATSAPP_CACHE_TTL = 60000; // 1 minute
+
 export async function getWhatsAppSettings() {
+  const now = Date.now();
+  if (whatsappSettingsCache && (now - whatsappCacheTime) < WHATSAPP_CACHE_TTL) {
+    return whatsappSettingsCache;
+  }
+  
   const db = await getDb();
   if (!db) return null;
   const result = await db.select().from(whatsappSettings).limit(1);
-  return result[0] || null;
+  whatsappSettingsCache = result[0] || null;
+  whatsappCacheTime = now;
+  return whatsappSettingsCache;
 }
 
 export async function upsertWhatsAppSettings(data: Partial<InsertWhatsAppSetting>) {
   const db = await getDb();
   if (!db) return null;
+  
+  // Clear cache
+  whatsappSettingsCache = null;
   
   const existing = await getWhatsAppSettings();
   if (existing) {
@@ -980,6 +994,9 @@ export async function upsertWhatsAppSettings(data: Partial<InsertWhatsAppSetting
       position: data.position || 'bottom-right',
     });
   }
+  
+  // Clear cache again after update
+  whatsappSettingsCache = null;
   return getWhatsAppSettings();
 }
 

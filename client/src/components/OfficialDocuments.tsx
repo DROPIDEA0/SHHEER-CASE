@@ -93,11 +93,11 @@ export default function OfficialDocuments() {
           className="flex flex-wrap justify-center gap-4 mb-8"
         >
           <div className="bg-white rounded-lg px-6 py-3 shadow-sm border border-[#c4a35a]/20">
-            <span className="text-2xl font-bold text-[#5d6d4e]">{documents.length}</span>
+            <span className="text-2xl font-bold text-[#5d6d4e]">{documents?.length || 0}</span>
             <span className="text-sm text-[#3d3d3d]/60 ml-2">Total Documents</span>
           </div>
           {categories.map(category => {
-            const count = documents.filter(doc => doc.category === category).length;
+            const count = (documents || []).filter(doc => doc.category === category).length;
             const typeInfo = getDocumentTypeInfo(category);
             return (
               <div key={category} className="bg-white rounded-lg px-4 py-3 shadow-sm border border-[#c4a35a]/20 flex items-center gap-2">

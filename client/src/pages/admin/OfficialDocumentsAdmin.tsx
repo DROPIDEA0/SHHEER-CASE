@@ -29,7 +29,7 @@ type OfficialDocument = {
 };
 
 export default function OfficialDocumentsAdmin() {
-  const { data: documents, isLoading, refetch } = trpc.admin.getOfficialDocuments.useQuery();
+  const { data: documents, isLoading, refetch } = trpc.admin.getAllOfficialDocuments.useQuery();
   const createMutation = trpc.admin.createOfficialDocument.useMutation();
   const updateMutation = trpc.admin.updateOfficialDocument.useMutation();
   const deleteMutation = trpc.admin.deleteOfficialDocument.useMutation();

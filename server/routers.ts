@@ -417,8 +417,8 @@ export const appRouter = router({
       .mutation(({ input }) => db.updateVideo(input.id, input.data)),
     deleteVideo: adminProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => db.deleteVideo(input.id)),
 
-    // Official Documents
-    getOfficialDocuments: adminProcedure.query(() => db.getOfficialDocuments()),
+    // Official Documents (Admin)
+    getAllOfficialDocuments: adminProcedure.query(() => db.getOfficialDocuments()),
     createOfficialDocument: adminProcedure
       .input(z.object({ title: z.string(), description: z.string().nullable().optional(), fileUrl: z.string(), fileName: z.string().nullable().optional(), fileType: z.string().nullable().optional(), fileSize: z.string().nullable().optional(), category: z.string().nullable().optional(), displayOrder: z.number().default(0), isActive: z.boolean().default(true) }))
       .mutation(({ input }) => db.createOfficialDocument(input)),
@@ -534,6 +534,9 @@ export const appRouter = router({
           throw new TRPCError({ code: 'BAD_REQUEST', message: error.message || 'Failed to change password' });
         }
       }),
+
+    // Official Documents (Public)
+    getOfficialDocuments: publicProcedure.query(() => db.getOfficialDocuments()),
 
     // WhatsApp Settings
     getWhatsAppSettings: publicProcedure.query(() => db.getWhatsAppSettings()),

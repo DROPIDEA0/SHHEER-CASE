@@ -366,3 +366,19 @@ export const adminSettings = mysqlTable("admin_settings", {
 
 export type AdminSetting = typeof adminSettings.$inferSelect;
 export type InsertAdminSetting = typeof adminSettings.$inferInsert;
+
+/**
+ * Social Media - Social media links for footer
+ */
+export const socialMedia = mysqlTable("social_media", {
+  id: int("id").autoincrement().primaryKey(),
+  platform: varchar("platform", { length: 50 }).notNull().unique(),
+  url: varchar("url", { length: 500 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  displayOrder: int("displayOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SocialMedia = typeof socialMedia.$inferSelect;
+export type InsertSocialMedia = typeof socialMedia.$inferInsert;

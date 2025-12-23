@@ -18,7 +18,8 @@ import {
   evidenceCategories, InsertEvidenceCategory,
   timelineEventEvidence, InsertTimelineEventEvidence,
   adminUsers, siteAccessUsers, siteProtection, adminSettings,
-  whatsappSettings, InsertWhatsAppSetting
+  whatsappSettings, InsertWhatsAppSetting,
+  socialMedia, InsertSocialMedia
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -980,4 +981,20 @@ export async function upsertWhatsAppSettings(data: Partial<InsertWhatsAppSetting
     });
   }
   return getWhatsAppSettings();
+}
+
+// ============ SOCIAL MEDIA ============
+export async function getSocialMediaLinks() {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.select().from(socialMedia).orderBy(socialMedia.displayOrder);
+  return result;
+}
+
+export async function updateSocialMediaLink(id: number, data: Partial<InsertSocialMedia>) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.update(socialMedia).set(data).where(eq(socialMedia.id, id));
+  const result = await db.select().from(socialMedia).where(eq(socialMedia.id, id)).limit(1);
+  return result[0] || null;
 }

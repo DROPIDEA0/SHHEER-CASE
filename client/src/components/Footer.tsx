@@ -1,7 +1,60 @@
-import { Phone, Globe, MapPin } from 'lucide-react';
+import { Phone, Globe, MapPin, Facebook, Twitter, Instagram, Music, Camera } from 'lucide-react';
+import { trpc } from '../lib/trpc';
 
 // Footer Component - Olive Branch Justice Theme
 // Features: Contact info, legal disclaimer, branding
+
+const platformIcons = {
+  facebook: Facebook,
+  twitter: Twitter,
+  instagram: Instagram,
+  tiktok: Music,
+  snapchat: Camera,
+};
+
+const platformColors = {
+  facebook: "hover:text-blue-500",
+  twitter: "hover:text-gray-200",
+  instagram: "hover:text-pink-500",
+  tiktok: "hover:text-gray-200",
+  snapchat: "hover:text-yellow-400",
+};
+
+function SocialMediaLinks() {
+  const { data: socialMediaLinks } = trpc.public.getSocialMediaLinks.useQuery();
+  
+  const activeLinks = socialMediaLinks?.filter(link => link.isActive && link.url);
+  
+  if (!activeLinks || activeLinks.length === 0) {
+    return null;
+  }
+  
+  return (
+    <div className="mt-6">
+      <div className="flex items-center gap-4">
+        {activeLinks.map((link) => {
+          const Icon = platformIcons[link.platform as keyof typeof platformIcons];
+          const colorClass = platformColors[link.platform as keyof typeof platformColors];
+          
+          if (!Icon) return null;
+          
+          return (
+            <a
+              key={link.id}
+              href={link.url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`text-white/70 ${colorClass} transition-colors`}
+              aria-label={link.platform}
+            >
+              <Icon className="w-6 h-6" />
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface QuickLink {
   label: string;
@@ -57,6 +110,9 @@ export default function Footer({
             <p className="text-white/70 text-sm leading-relaxed max-w-md">
               {aboutText || 'This website documents the legal case regarding the bank guarantee dispute for the SHHEER mobile advertising project. All information presented is based on official documents and evidence submitted to the Banking Disputes Committee in Riyadh.'}
             </p>
+            
+            {/* Social Media Links */}
+            <SocialMediaLinks />
           </div>
 
           {/* Quick Links */}

@@ -25,6 +25,7 @@ import SiteProtectionAdmin from "./pages/admin/SiteProtectionAdmin";
 import AdminLogin from "./pages/admin/AdminLogin";
 import OfficialDocumentsAdmin from "./pages/admin/OfficialDocumentsAdmin";
 import WhatsAppSettingsAdmin from "./pages/admin/WhatsAppSettingsAdmin";
+import SocialMediaAdmin from "./pages/admin/SocialMediaAdmin";
 
 function Router() {
   return (
@@ -118,6 +119,11 @@ function Router() {
       <Route path={"/admin/whatsapp"}>
         <AdminProtectedRoute>
           <WhatsAppSettingsAdmin />
+        </AdminProtectedRoute>
+      </Route>
+      <Route path={"/admin/social-media"}>
+        <AdminProtectedRoute>
+          <SocialMediaAdmin />
         </AdminProtectedRoute>
       </Route>
       

@@ -331,6 +331,7 @@ export const appRouter = router({
       .query(({ input }) => db.getEvidenceForEvent(input.eventId)),
     getOfficialDocuments: publicProcedure.query(() => db.getOfficialDocuments()),
     getWhatsAppSettings: publicProcedure.query(() => db.getWhatsAppSettings()),
+    getSocialMediaLinks: publicProcedure.query(() => db.getSocialMediaLinks()),
   }),
 
   // ============ ADMIN API ============
@@ -541,6 +542,12 @@ export const appRouter = router({
     upsertWhatsAppSettings: adminProcedure
       .input(z.object({ isEnabled: z.boolean().optional(), phoneNumber: z.string().optional(), message: z.string().optional(), position: z.string().optional() }))
       .mutation(({ input }) => db.upsertWhatsAppSettings(input)),
+
+    // Social Media
+    getSocialMediaLinks: adminProcedure.query(() => db.getSocialMediaLinks()),
+    updateSocialMediaLink: adminProcedure
+      .input(z.object({ id: z.number(), url: z.string().optional(), isActive: z.boolean().optional() }))
+      .mutation(({ input }) => db.updateSocialMediaLink(input.id, { url: input.url, isActive: input.isActive })),
   }),
 });
 

@@ -363,7 +363,7 @@ export const appRouter = router({
 
     getHeroSection: adminProcedure.query(() => db.getHeroSection()),
     upsertHeroSection: adminProcedure
-      .input(z.object({ title: z.string().nullable().optional(), titleHighlight: z.string().nullable().optional(), subtitle: z.string().nullable().optional(), description: z.string().nullable().optional(), guaranteeRef: z.string().nullable().optional(), dealValue: z.string().nullable().optional(), criticalPeriod: z.string().nullable().optional(), ctaText: z.string().nullable().optional(), ctaLink: z.string().nullable().optional() }))
+      .input(z.object({ title: z.string().nullable().optional(), titleHighlight: z.string().nullable().optional(), subtitle: z.string().nullable().optional(), description: z.string().nullable().optional(), secondaryDescription: z.string().nullable().optional(), guaranteeRef: z.string().nullable().optional(), dealValue: z.string().nullable().optional(), criticalPeriod: z.string().nullable().optional(), ctaText: z.string().nullable().optional(), ctaLink: z.string().nullable().optional() }))
       .mutation(({ input }) => db.upsertHeroSection(input)),
 
     getOverviewParties: adminProcedure.query(() => db.getOverviewParties()),

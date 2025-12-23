@@ -81,6 +81,7 @@ export const heroSection = mysqlTable("hero_section", {
   titleHighlight: varchar("titleHighlight", { length: 200 }),
   subtitle: varchar("subtitle", { length: 300 }),
   description: text("description"),
+  secondaryDescription: text("secondaryDescription"),
   guaranteeRef: varchar("guaranteeRef", { length: 100 }),
   dealValue: varchar("dealValue", { length: 50 }),
   criticalPeriod: varchar("criticalPeriod", { length: 100 }),

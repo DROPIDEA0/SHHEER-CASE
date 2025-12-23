@@ -184,6 +184,7 @@ export default function Home() {
           titleHighlight={transformedHero.titleHighlight}
           subtitle={transformedHero.subtitle}
           description={transformedHero.description}
+          secondaryDescription={transformedHero.secondaryDescription || ''}
           guaranteeRef={transformedHero.guaranteeRef}
           dealValue={transformedHero.dealValue}
           criticalPeriod={transformedHero.criticalPeriod}

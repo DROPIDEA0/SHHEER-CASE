@@ -18,6 +18,7 @@ export default function HeroAdmin() {
     titleHighlight: '',
     subtitle: '',
     description: '',
+    secondaryDescription: '',
     guaranteeRef: '',
     dealValue: '',
     criticalPeriod: '',
@@ -32,6 +33,7 @@ export default function HeroAdmin() {
         titleHighlight: heroData.titleHighlight || '',
         subtitle: heroData.subtitle || '',
         description: heroData.description || '',
+        secondaryDescription: heroData.secondaryDescription || '',
         guaranteeRef: heroData.guaranteeRef || '',
         dealValue: heroData.dealValue || '',
         criticalPeriod: heroData.criticalPeriod || '',
@@ -116,7 +118,7 @@ export default function HeroAdmin() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">Description (First Paragraph)</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -124,6 +126,18 @@ export default function HeroAdmin() {
                   placeholder="Nesma Barzan vs. Al Rajhi Bank"
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="secondaryDescription">Secondary Description (Second Paragraph)</Label>
+                <Textarea
+                  id="secondaryDescription"
+                  value={formData.secondaryDescription}
+                  onChange={(e) => setFormData({ ...formData, secondaryDescription: e.target.value })}
+                  placeholder="A comprehensive documentation of how..."
+                  rows={4}
+                />
+                <p className="text-xs text-stone-500">This text appears below the key metrics cards</p>
               </div>
             </CardContent>
           </Card>

@@ -9,6 +9,7 @@ interface HeroSectionProps {
   titleHighlight: string;
   subtitle: string;
   description: string;
+  secondaryDescription: string;
   guaranteeRef: string;
   dealValue: string;
   criticalPeriod: string;
@@ -21,6 +22,7 @@ export default function HeroSection({
   titleHighlight,
   subtitle,
   description,
+  secondaryDescription,
   guaranteeRef,
   dealValue,
   criticalPeriod,
@@ -143,9 +145,7 @@ export default function HeroSection({
             transition={{ duration: 0.8, delay: 0.8 }}
             className="text-base md:text-lg text-[#3d3d3d]/80 max-w-2xl mx-auto leading-relaxed"
           >
-            A comprehensive documentation of how Al Rajhi Bank's operational failures 
-            and communication breakdowns led to the collapse of a €120 million investment 
-            deal for the SHHEER mobile advertising platform.
+            {secondaryDescription}
           </motion.p>
 
           {/* Scroll Indicator */}

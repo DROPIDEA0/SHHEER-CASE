@@ -108,29 +108,39 @@ export default function VideosAdmin() {
       // Read file as base64
       const reader = new FileReader();
       reader.onload = async () => {
-        setUploadProgress(30);
-        const base64Data = (reader.result as string).split(',')[1];
-        
-        setUploadProgress(50);
-        const result = await uploadVideoMutation.mutateAsync({
-          fileName: file.name,
-          fileData: base64Data,
-          contentType: file.type,
-        });
-        
-        setUploadProgress(100);
-        setFormData({ ...formData, videoUrl: result.url });
-        toast.success('Video uploaded successfully!');
-        setIsUploading(false);
+        try {
+          setUploadProgress(30);
+          const base64Data = (reader.result as string).split(',')[1];
+          
+          setUploadProgress(50);
+          const result = await uploadVideoMutation.mutateAsync({
+            fileName: file.name,
+            fileData: base64Data,
+            contentType: file.type,
+          });
+          
+          setUploadProgress(100);
+          setFormData({ ...formData, videoUrl: result.url });
+          toast.success('Video uploaded successfully!');
+          setIsUploading(false);
+        } catch (error: any) {
+          console.error('Video upload error:', error);
+          toast.error(error?.message || 'Failed to upload video to server');
+          setIsUploading(false);
+          setUploadProgress(0);
+        }
       };
       reader.onerror = () => {
         toast.error('Failed to read video file');
         setIsUploading(false);
+        setUploadProgress(0);
       };
       reader.readAsDataURL(file);
-    } catch (error) {
-      toast.error('Failed to upload video');
+    } catch (error: any) {
+      console.error('File read error:', error);
+      toast.error('Failed to process video file');
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 

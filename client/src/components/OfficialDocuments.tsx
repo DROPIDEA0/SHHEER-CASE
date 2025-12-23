@@ -47,15 +47,11 @@ export default function OfficialDocuments() {
     );
   }
 
-  if (!documents || documents.length === 0) {
-    return null;
-  }
-
   const filteredDocuments = selectedCategory
-    ? documents.filter(doc => doc.category === selectedCategory)
-    : documents;
+    ? (documents || []).filter(doc => doc.category === selectedCategory)
+    : (documents || []);
 
-  const categories = Array.from(new Set(documents.map(doc => doc.category)));
+  const categories = documents ? Array.from(new Set(documents.map(doc => doc.category))) : [];
 
   const getFileExtension = (filename: string) => {
     const ext = filename.split('.').pop()?.toUpperCase();
@@ -140,12 +136,19 @@ export default function OfficialDocuments() {
         </div>
 
         {/* Documents Grid */}
-        <motion.div 
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredDocuments.map((doc) => {
+        {filteredDocuments.length === 0 ? (
+          <div className="text-center py-20">
+            <FileText className="w-16 h-16 text-[#3d3d3d]/20 mx-auto mb-4" />
+            <p className="text-[#3d3d3d]/60 text-lg">No documents available yet</p>
+            <p className="text-[#3d3d3d]/40 text-sm mt-2">Documents will appear here once they are uploaded</p>
+          </div>
+        ) : (
+          <motion.div 
+            layout
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredDocuments.map((doc) => {
               const typeInfo = getDocumentTypeInfo(doc.category);
               const Icon = typeInfo.icon;
               const fileExt = getFileExtension(doc.fileName || '');
@@ -219,9 +222,10 @@ export default function OfficialDocuments() {
                   </div>
                 </motion.div>
               );
-            })}
-          </AnimatePresence>
-        </motion.div>
+              })}
+            </AnimatePresence>
+          </motion.div>
+        )}
 
         {/* Footer Note */}
         <motion.p

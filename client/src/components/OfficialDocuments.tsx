@@ -16,11 +16,21 @@ import { Button } from '@/components/ui/button';
 // Official Documents - Similar to Evidence Archive
 // Features: Filterable gallery, preview, download
 
-const documentTypeLabels = {
+const documentTypeLabels: Record<string, { label: string; icon: any; color: string }> = {
   'court-decision': { label: 'Court Decisions', icon: Scale, color: 'bg-[#722f37]' },
   'legal-study': { label: 'Legal Studies', icon: BookOpen, color: 'bg-[#5d6d4e]' },
   'profile': { label: 'Profiles', icon: FileCheck, color: 'bg-[#c4a35a]' },
   'other': { label: 'Other Documents', icon: FileText, color: 'bg-gray-500' },
+  // Fallback for any other category
+};
+
+const getDocumentTypeInfo = (category: string | null) => {
+  if (!category) return { label: 'Unknown', icon: FileText, color: 'bg-gray-400' };
+  return documentTypeLabels[category.toLowerCase()] || { 
+    label: category, 
+    icon: FileText, 
+    color: 'bg-[#5d6d4e]' 
+  };
 };
 
 export default function OfficialDocuments() {
@@ -92,11 +102,11 @@ export default function OfficialDocuments() {
           </div>
           {categories.map(category => {
             const count = documents.filter(doc => doc.category === category).length;
-            const typeInfo = documentTypeLabels[category as keyof typeof documentTypeLabels];
+            const typeInfo = getDocumentTypeInfo(category);
             return (
               <div key={category} className="bg-white rounded-lg px-4 py-3 shadow-sm border border-[#c4a35a]/20 flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${typeInfo?.color || 'bg-gray-400'}`} />
-                <span className="text-sm text-[#3d3d3d]">{count} {typeInfo?.label || category}</span>
+                <div className={`w-3 h-3 rounded-full ${typeInfo.color}`} />
+                <span className="text-sm text-[#3d3d3d]">{count} {typeInfo.label}</span>
               </div>
             );
           })}
@@ -113,8 +123,8 @@ export default function OfficialDocuments() {
             All Documents
           </Button>
           {categories.map(category => {
-            const typeInfo = documentTypeLabels[category as keyof typeof documentTypeLabels];
-            const Icon = typeInfo?.icon || FileText;
+            const typeInfo = getDocumentTypeInfo(category);
+            const Icon = typeInfo.icon;
             return (
               <Button
                 key={category}
@@ -123,7 +133,7 @@ export default function OfficialDocuments() {
                 className={selectedCategory === category ? 'bg-[#5d6d4e] hover:bg-[#5d6d4e]/90' : ''}
               >
                 <Icon className="w-4 h-4 mr-2" />
-                {typeInfo?.label || category}
+                {typeInfo.label}
               </Button>
             );
           })}
@@ -136,8 +146,8 @@ export default function OfficialDocuments() {
         >
           <AnimatePresence mode="popLayout">
             {filteredDocuments.map((doc) => {
-              const typeInfo = documentTypeLabels[doc.category as keyof typeof documentTypeLabels];
-              const Icon = typeInfo?.icon || FileText;
+              const typeInfo = getDocumentTypeInfo(doc.category);
+              const Icon = typeInfo.icon;
               const fileExt = getFileExtension(doc.fileName || '');
               
               return (
@@ -152,7 +162,7 @@ export default function OfficialDocuments() {
                 >
                   {/* Document Preview */}
                   <div className="aspect-[4/3] bg-gradient-to-br from-[#f5f2eb] to-[#fdfcfa] flex flex-col items-center justify-center p-6">
-                    <div className={`w-20 h-20 rounded-2xl ${typeInfo?.color || 'bg-gray-500'} flex items-center justify-center mb-3 shadow-lg`}>
+                    <div className={`w-20 h-20 rounded-2xl ${typeInfo.color} flex items-center justify-center mb-3 shadow-lg`}>
                       <Icon className="w-10 h-10 text-white" />
                     </div>
                     <div className="text-xs font-bold text-[#3d3d3d]/40 bg-white px-3 py-1 rounded-full">
@@ -161,9 +171,9 @@ export default function OfficialDocuments() {
                   </div>
                   
                   {/* Category Badge */}
-                  <div className={`absolute top-3 left-3 ${typeInfo?.color || 'bg-gray-500'} text-white text-xs px-3 py-1 rounded-full flex items-center gap-1 shadow-md`}>
+                  <div className={`absolute top-3 left-3 ${typeInfo.color} text-white text-xs px-3 py-1 rounded-full flex items-center gap-1 shadow-md`}>
                     <Icon className="w-3 h-3" />
-                    {typeInfo?.label || doc.category}
+                    {typeInfo.label}
                   </div>
                   
                   {/* Overlay Actions */}

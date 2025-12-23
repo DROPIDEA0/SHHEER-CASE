@@ -51,10 +51,19 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath =
-    process.env.NODE_ENV === "development"
-      ? path.resolve(__dirname, "../..", "dist", "public")
-      : path.resolve(__dirname, "public");
+  // In production, __dirname points to dist/ folder
+  // We need to find the project root
+  const projectRoot = process.env.NODE_ENV === "development"
+    ? path.resolve(__dirname, "../..")
+    : path.resolve(__dirname, "..");
+  
+  const distPath = process.env.NODE_ENV === "development"
+    ? path.resolve(projectRoot, "dist", "public")
+    : path.resolve(__dirname, "public");
+  
+  console.log('[Static] Project root:', projectRoot);
+  console.log('[Static] Dist path:', distPath);
+  
   if (!fs.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
@@ -63,8 +72,16 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // Serve uploads directory
-  const uploadsPath = path.resolve(__dirname, "../..", "public", "uploads");
+  // Serve uploads directory from project root
+  const uploadsPath = path.resolve(projectRoot, "public", "uploads");
+  console.log('[Static] Serving uploads from:', uploadsPath);
+  
+  if (!fs.existsSync(uploadsPath)) {
+    console.error('[Static] Uploads directory does not exist:', uploadsPath);
+  } else {
+    console.log('[Static] Uploads directory exists, files:', fs.readdirSync(uploadsPath));
+  }
+  
   app.use("/uploads", express.static(uploadsPath));
 
   // fall through to index.html if the file doesn't exist

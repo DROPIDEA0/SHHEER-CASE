@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -129,7 +130,8 @@ export default function SettingsAdmin() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <AdminLayout>
+      <div className="container mx-auto p-6 max-w-6xl">
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Settings</h1>
@@ -467,6 +469,7 @@ export default function SettingsAdmin() {
         </Tabs>
       </div>
     </div>
+    </AdminLayout>
   );
 }
 

@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Upload, FileText, Download, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, FileText, Eye } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import AdminLayout from '@/components/admin/AdminLayout';
 
 type OfficialDocument = {
   id: number;
@@ -59,7 +60,7 @@ export default function OfficialDocumentsAdmin() {
     // Validate file size (max 100MB)
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
-      toast.error('حجم الملف كبير جداً. الحد الأقصى 100 ميجابايت');
+      toast.error('File size is too large. Maximum 100MB');
       return;
     }
 
@@ -93,18 +94,18 @@ export default function OfficialDocumentsAdmin() {
           fileSize: sizeStr
         });
         
-        toast.success('تم رفع الملف بنجاح!');
+        toast.success('File uploaded successfully!');
         setIsUploading(false);
       };
 
       reader.onerror = () => {
-        toast.error('فشل في قراءة الملف');
+        toast.error('Failed to read file');
         setIsUploading(false);
       };
 
       reader.readAsDataURL(file);
     } catch (error: any) {
-      toast.error(error.message || 'فشل في رفع الملف');
+      toast.error(error.message || 'Failed to upload file');
       setIsUploading(false);
     }
   };
@@ -113,7 +114,7 @@ export default function OfficialDocumentsAdmin() {
     e.preventDefault();
     
     if (!formData.title || !formData.fileUrl) {
-      toast.error('الرجاء ملء جميع الحقول المطلوبة');
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -123,17 +124,17 @@ export default function OfficialDocumentsAdmin() {
           id: editingDocument.id,
           data: formData,
         });
-        toast.success('تم تحديث المستند بنجاح');
+        toast.success('Document updated successfully');
       } else {
         await createMutation.mutateAsync(formData);
-        toast.success('تم إضافة المستند بنجاح');
+        toast.success('Document added successfully');
       }
       
       refetch();
       setIsDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      toast.error(error.message || 'حدث خطأ أثناء حفظ المستند');
+      toast.error(error.message || 'Error saving document');
     }
   };
 
@@ -154,14 +155,14 @@ export default function OfficialDocumentsAdmin() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المستند؟')) return;
+    if (!confirm('Are you sure you want to delete this document?')) return;
     
     try {
       await deleteMutation.mutateAsync({ id });
-      toast.success('تم حذف المستند بنجاح');
+      toast.success('Document deleted successfully');
       refetch();
     } catch (error: any) {
-      toast.error(error.message || 'فشل في حذف المستند');
+      toast.error(error.message || 'Failed to delete document');
     }
   };
 
@@ -188,229 +189,233 @@ export default function OfficialDocumentsAdmin() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-stone-500">جاري التحميل...</div>
-      </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-stone-500">Loading...</div>
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-stone-900">المستندات الرسمية</h1>
-          <p className="text-stone-600 mt-1">إدارة الملفات الكبيرة مثل البروفايلات وقرارات المحكمة والدراسات</p>
+    <AdminLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-stone-900">Official Documents</h1>
+            <p className="text-stone-600 mt-1">Manage large files such as profiles, court decisions, and studies</p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingDocument ? 'Edit Document' : 'Add New Document'}</DialogTitle>
+                <DialogDescription>
+                  Upload file and enter document information
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* File Upload */}
+                <div className="space-y-2">
+                  <Label>Upload File *</Label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-24 border-dashed"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <div className="flex flex-col items-center">
+                        <Upload className="h-8 w-8 mb-2 animate-bounce" />
+                        <span>Uploading... {uploadProgress}%</span>
+                      </div>
+                    ) : formData.fileUrl ? (
+                      <div className="flex flex-col items-center">
+                        <FileText className="h-8 w-8 mb-2 text-green-600" />
+                        <span className="text-sm">{formData.fileName}</span>
+                        <span className="text-xs text-stone-500">{formData.fileSize}</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <Upload className="h-8 w-8 mb-2" />
+                        <span>Click to upload file</span>
+                        <span className="text-xs text-stone-500">PDF, Word, Excel, PowerPoint, ZIP (Max 100MB)</span>
+                      </div>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Title */}
+                <div className="space-y-2">
+                  <Label htmlFor="title">Document Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Example: Court Decision No. 123"
+                    required
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Brief description of the document..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    placeholder="Example: Court Decisions, Studies, Profiles"
+                  />
+                </div>
+
+                {/* Display Order */}
+                <div className="space-y-2">
+                  <Label htmlFor="displayOrder">Display Order</Label>
+                  <Input
+                    id="displayOrder"
+                    type="number"
+                    value={formData.displayOrder}
+                    onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+
+                {/* Active Status */}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                  />
+                  <Label htmlFor="isActive">Active</Label>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isUploading || !formData.fileUrl}>
+                    {editingDocument ? 'Update' : 'Add'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openDialog}>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة مستند جديد
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingDocument ? 'تعديل المستند' : 'إضافة مستند جديد'}</DialogTitle>
-              <DialogDescription>
-                قم برفع الملف وإدخال معلومات المستند
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* File Upload */}
-              <div className="space-y-2">
-                <Label>رفع الملف *</Label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar"
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-24 border-dashed"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <div className="flex flex-col items-center">
-                      <Upload className="h-8 w-8 mb-2 animate-bounce" />
-                      <span>جاري الرفع... {uploadProgress}%</span>
-                    </div>
-                  ) : formData.fileUrl ? (
-                    <div className="flex flex-col items-center">
-                      <FileText className="h-8 w-8 mb-2 text-green-600" />
-                      <span className="text-sm">{formData.fileName}</span>
-                      <span className="text-xs text-stone-500">{formData.fileSize}</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      <Upload className="h-8 w-8 mb-2" />
-                      <span>اضغط لرفع الملف</span>
-                      <span className="text-xs text-stone-500">PDF, Word, Excel, PowerPoint, ZIP (حد أقصى 100MB)</span>
-                    </div>
-                  )}
-                </Button>
-              </div>
 
-              {/* Title */}
-              <div className="space-y-2">
-                <Label htmlFor="title">عنوان المستند *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="مثال: قرار المحكمة رقم 123"
-                  required
-                />
+        {/* Documents Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Documents List</CardTitle>
+            <CardDescription>
+              {documents?.length || 0} document(s)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!documents || documents.length === 0 ? (
+              <div className="text-center py-12 text-stone-500">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No documents yet</p>
               </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">الوصف</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="وصف مختصر للمستند..."
-                  rows={3}
-                />
-              </div>
-
-              {/* Category */}
-              <div className="space-y-2">
-                <Label htmlFor="category">التصنيف</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="مثال: قرارات المحكمة، دراسات، بروفايلات"
-                />
-              </div>
-
-              {/* Display Order */}
-              <div className="space-y-2">
-                <Label htmlFor="displayOrder">ترتيب العرض</Label>
-                <Input
-                  id="displayOrder"
-                  type="number"
-                  value={formData.displayOrder}
-                  onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-
-              {/* Active Status */}
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                />
-                <Label htmlFor="isActive">نشط</Label>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  إلغاء
-                </Button>
-                <Button type="submit" disabled={isUploading || !formData.fileUrl}>
-                  {editingDocument ? 'تحديث' : 'إضافة'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Documents Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>قائمة المستندات</CardTitle>
-          <CardDescription>
-            {documents?.length || 0} مستند
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!documents || documents.length === 0 ? (
-            <div className="text-center py-12 text-stone-500">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>لا توجد مستندات حتى الآن</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>العنوان</TableHead>
-                  <TableHead>التصنيف</TableHead>
-                  <TableHead>الحجم</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الترتيب</TableHead>
-                  <TableHead className="text-left">الإجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documents.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{doc.title}</div>
-                        {doc.description && (
-                          <div className="text-sm text-stone-500 truncate max-w-md">
-                            {doc.description}
-                          </div>
-                        )}
-                        {doc.fileName && (
-                          <div className="text-xs text-stone-400 mt-1">{doc.fileName}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {doc.category && (
-                        <Badge variant="outline">{doc.category}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-stone-600">{doc.fileSize || '-'}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={doc.isActive ? 'default' : 'secondary'}>
-                        {doc.isActive ? 'نشط' : 'غير نشط'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{doc.displayOrder}</TableCell>
-                    <TableCell className="text-left">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(doc.fileUrl, '_blank')}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(doc)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(doc.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Size</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Order</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                </TableHeader>
+                <TableBody>
+                  {documents.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{doc.title}</div>
+                          {doc.description && (
+                            <div className="text-sm text-stone-500 truncate max-w-md">
+                              {doc.description}
+                            </div>
+                          )}
+                          {doc.fileName && (
+                            <div className="text-xs text-stone-400 mt-1">{doc.fileName}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {doc.category && (
+                          <Badge variant="outline">{doc.category}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-stone-600">{doc.fileSize || '-'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={doc.isActive ? 'default' : 'secondary'}>
+                          {doc.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{doc.displayOrder}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(doc.fileUrl, '_blank')}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(doc)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(doc.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AdminLayout>
   );
 }

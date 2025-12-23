@@ -26,7 +26,7 @@ export default function OfficialDocuments() {
 
   // Group documents by category
   const groupedDocuments = activeDocuments.reduce((acc, doc) => {
-    const category = doc.category || 'أخرى';
+    const category = doc.category || 'Other';
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -49,7 +49,7 @@ export default function OfficialDocuments() {
       <section id="official-documents" className="py-20 bg-stone-50">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <div className="text-stone-500">جاري التحميل...</div>
+            <div className="text-stone-500">Loading...</div>
           </div>
         </div>
       </section>
@@ -72,10 +72,10 @@ export default function OfficialDocuments() {
           className="text-center mb-12"
         >
           <h2 className="text-4xl font-bold text-stone-900 mb-4">
-            المستندات الرسمية
+            Official Documents
           </h2>
           <p className="text-xl text-stone-600 max-w-3xl mx-auto">
-            الوثائق والملفات الرسمية المتعلقة بالقضية - بروفايلات، قرارات المحكمة، دراسات قانونية
+            Official documents and files related to the case - profiles, court decisions, legal studies
           </p>
         </motion.div>
 
@@ -96,7 +96,7 @@ export default function OfficialDocuments() {
                     <CardTitle className="text-2xl text-stone-900">{category}</CardTitle>
                   </div>
                   <CardDescription>
-                    {docs.length} {docs.length === 1 ? 'مستند' : 'مستندات'}
+                    {docs.length} {docs.length === 1 ? 'document' : 'documents'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -145,16 +145,16 @@ export default function OfficialDocuments() {
                                     className="flex-1"
                                     onClick={() => window.open(doc.fileUrl, '_blank')}
                                   >
-                                    <Eye className="h-3 w-3 ml-1" />
-                                    معاينة
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    Preview
                                   </Button>
                                   <Button
                                     size="sm"
                                     className="flex-1 bg-[#5d6d4e] hover:bg-[#4a5a3e]"
                                     onClick={() => handleDownload(doc.fileUrl, doc.fileName || 'document')}
                                   >
-                                    <Download className="h-3 w-3 ml-1" />
-                                    تحميل
+                                    <Download className="h-3 w-3 mr-1" />
+                                    Download
                                   </Button>
                                 </div>
                               </div>
@@ -179,7 +179,7 @@ export default function OfficialDocuments() {
           className="mt-8 text-center"
         >
           <p className="text-sm text-stone-500">
-            جميع المستندات المعروضة هي وثائق رسمية مقدمة للجهات المختصة
+            All displayed documents are official documents submitted to the relevant authorities
           </p>
         </motion.div>
       </div>

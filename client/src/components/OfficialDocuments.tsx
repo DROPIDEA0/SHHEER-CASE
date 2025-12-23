@@ -1,187 +1,227 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { trpc } from '@/lib/trpc';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Download, 
+  Eye, 
+  Filter,
+  FileText,
+  Scale,
+  BookOpen,
+  FileCheck,
+  Loader2
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Eye, Folder } from 'lucide-react';
-import { motion } from 'framer-motion';
 
-type OfficialDocument = {
-  id: number;
-  title: string;
-  description: string | null;
-  fileUrl: string;
-  fileName: string | null;
-  fileType: string | null;
-  fileSize: string | null;
-  category: string | null;
-  displayOrder: number;
-  isActive: boolean;
+// Official Documents - Similar to Evidence Archive
+// Features: Filterable gallery, preview, download
+
+const documentTypeLabels = {
+  'court-decision': { label: 'Court Decisions', icon: Scale, color: 'bg-[#722f37]' },
+  'legal-study': { label: 'Legal Studies', icon: BookOpen, color: 'bg-[#5d6d4e]' },
+  'profile': { label: 'Profiles', icon: FileCheck, color: 'bg-[#c4a35a]' },
+  'other': { label: 'Other Documents', icon: FileText, color: 'bg-gray-500' },
 };
 
 export default function OfficialDocuments() {
-  const { data: documents, isLoading } = trpc.admin.getOfficialDocuments.useQuery();
-
-  // Filter only active documents
-  const activeDocuments = documents?.filter(doc => doc.isActive) || [];
-
-  // Group documents by category
-  const groupedDocuments = activeDocuments.reduce((acc, doc) => {
-    const category = doc.category || 'Other';
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(doc);
-    return acc;
-  }, {} as Record<string, OfficialDocument[]>);
-
-  const handleDownload = (fileUrl: string, fileName: string) => {
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = fileName || 'document';
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const { data: documents, isLoading } = trpc.public.getOfficialDocuments.useQuery();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   if (isLoading) {
     return (
-      <section id="official-documents" className="py-20 bg-stone-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <div className="text-stone-500">Loading...</div>
-          </div>
+      <section id="official-documents" className="py-20 bg-gradient-to-b from-[#fdfcfa] to-[#f5f2eb]">
+        <div className="container flex justify-center items-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#5d6d4e]" />
         </div>
       </section>
     );
   }
 
-  if (activeDocuments.length === 0) {
-    return null; // Don't show section if no documents
+  if (!documents || documents.length === 0) {
+    return null;
   }
 
+  const filteredDocuments = selectedCategory
+    ? documents.filter(doc => doc.category === selectedCategory)
+    : documents;
+
+  const categories = Array.from(new Set(documents.map(doc => doc.category)));
+
+  const getFileExtension = (filename: string) => {
+    const ext = filename.split('.').pop()?.toUpperCase();
+    return ext || 'FILE';
+  };
+
+  const formatFileSize = (sizeStr: string | null) => {
+    if (!sizeStr) return 'Unknown';
+    return sizeStr;
+  };
+
   return (
-    <section id="official-documents" className="py-20 bg-stone-50">
-      <div className="container mx-auto px-4">
+    <section id="official-documents" className="py-20 bg-gradient-to-b from-[#fdfcfa] to-[#f5f2eb]">
+      <div className="container">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl font-bold text-stone-900 mb-4">
+          <h2 
+            className="text-3xl md:text-4xl font-bold text-[#3d3d3d] mb-4"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
             Official Documents
           </h2>
-          <p className="text-xl text-stone-600 max-w-3xl mx-auto">
+          <div className="w-24 h-1 bg-gradient-to-r from-transparent via-[#c4a35a] to-transparent mx-auto mb-6" />
+          <p className="text-[#3d3d3d]/70 max-w-2xl mx-auto">
             Official documents and files related to the case - profiles, court decisions, legal studies
           </p>
         </motion.div>
 
-        {/* Documents Grid */}
-        <div className="space-y-8">
-          {Object.entries(groupedDocuments).map(([category, docs], categoryIndex) => (
-            <motion.div
-              key={category}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: categoryIndex * 0.1 }}
-            >
-              <Card className="border-stone-200 shadow-lg">
-                <CardHeader className="bg-[#5d6d4e]/5">
-                  <div className="flex items-center gap-3">
-                    <Folder className="h-6 w-6 text-[#5d6d4e]" />
-                    <CardTitle className="text-2xl text-stone-900">{category}</CardTitle>
-                  </div>
-                  <CardDescription>
-                    {docs.length} {docs.length === 1 ? 'document' : 'documents'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {docs.map((doc, index) => (
-                      <motion.div
-                        key={doc.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.4, delay: index * 0.05 }}
-                      >
-                        <Card className="h-full hover:shadow-md transition-shadow border-stone-200">
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0">
-                                <div className="w-12 h-12 rounded-lg bg-[#5d6d4e]/10 flex items-center justify-center">
-                                  <FileText className="h-6 w-6 text-[#5d6d4e]" />
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-stone-900 mb-1 line-clamp-2">
-                                  {doc.title}
-                                </h3>
-                                {doc.description && (
-                                  <p className="text-sm text-stone-600 mb-2 line-clamp-2">
-                                    {doc.description}
-                                  </p>
-                                )}
-                                <div className="flex items-center gap-2 mb-3">
-                                  {doc.fileSize && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {doc.fileSize}
-                                    </Badge>
-                                  )}
-                                  {doc.fileType && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {doc.fileType.split('/')[1]?.toUpperCase() || 'FILE'}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={() => window.open(doc.fileUrl, '_blank')}
-                                  >
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    Preview
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="flex-1 bg-[#5d6d4e] hover:bg-[#4a5a3e]"
-                                    onClick={() => handleDownload(doc.fileUrl, doc.fileName || 'document')}
-                                  >
-                                    <Download className="h-3 w-3 mr-1" />
-                                    Download
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-wrap justify-center gap-4 mb-8"
+        >
+          <div className="bg-white rounded-lg px-6 py-3 shadow-sm border border-[#c4a35a]/20">
+            <span className="text-2xl font-bold text-[#5d6d4e]">{documents.length}</span>
+            <span className="text-sm text-[#3d3d3d]/60 ml-2">Total Documents</span>
+          </div>
+          {categories.map(category => {
+            const count = documents.filter(doc => doc.category === category).length;
+            const typeInfo = documentTypeLabels[category as keyof typeof documentTypeLabels];
+            return (
+              <div key={category} className="bg-white rounded-lg px-4 py-3 shadow-sm border border-[#c4a35a]/20 flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${typeInfo?.color || 'bg-gray-400'}`} />
+                <span className="text-sm text-[#3d3d3d]">{count} {typeInfo?.label || category}</span>
+              </div>
+            );
+          })}
+        </motion.div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap justify-center gap-2 mb-10">
+          <Button
+            variant={selectedCategory === null ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory(null)}
+            className={selectedCategory === null ? 'bg-[#5d6d4e] hover:bg-[#5d6d4e]/90' : ''}
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            All Documents
+          </Button>
+          {categories.map(category => {
+            const typeInfo = documentTypeLabels[category as keyof typeof documentTypeLabels];
+            const Icon = typeInfo?.icon || FileText;
+            return (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? 'default' : 'outline'}
+                onClick={() => setSelectedCategory(category)}
+                className={selectedCategory === category ? 'bg-[#5d6d4e] hover:bg-[#5d6d4e]/90' : ''}
+              >
+                <Icon className="w-4 h-4 mr-2" />
+                {typeInfo?.label || category}
+              </Button>
+            );
+          })}
         </div>
 
-        {/* Info Note */}
-        <motion.div
+        {/* Documents Grid */}
+        <motion.div 
+          layout
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredDocuments.map((doc) => {
+              const typeInfo = documentTypeLabels[doc.category as keyof typeof documentTypeLabels];
+              const Icon = typeInfo?.icon || FileText;
+              const fileExt = getFileExtension(doc.fileName || '');
+              
+              return (
+                <motion.div
+                  key={doc.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.3 }}
+                  className="group relative bg-white rounded-xl overflow-hidden border border-[#c4a35a]/20 shadow-sm hover:shadow-lg transition-all"
+                >
+                  {/* Document Preview */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-[#f5f2eb] to-[#fdfcfa] flex flex-col items-center justify-center p-6">
+                    <div className={`w-20 h-20 rounded-2xl ${typeInfo?.color || 'bg-gray-500'} flex items-center justify-center mb-3 shadow-lg`}>
+                      <Icon className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="text-xs font-bold text-[#3d3d3d]/40 bg-white px-3 py-1 rounded-full">
+                      {fileExt}
+                    </div>
+                  </div>
+                  
+                  {/* Category Badge */}
+                  <div className={`absolute top-3 left-3 ${typeInfo?.color || 'bg-gray-500'} text-white text-xs px-3 py-1 rounded-full flex items-center gap-1 shadow-md`}>
+                    <Icon className="w-3 h-3" />
+                    {typeInfo?.label || doc.category}
+                  </div>
+                  
+                  {/* Overlay Actions */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      asChild
+                      className="bg-white hover:bg-white/90"
+                    >
+                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                        <Eye className="w-4 h-4 mr-1" />
+                        Preview
+                      </a>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      asChild
+                      className="bg-white hover:bg-white/90"
+                    >
+                      <a href={doc.fileUrl} download={doc.fileName || 'document'}>
+                        <Download className="w-4 h-4 mr-1" />
+                        Download
+                      </a>
+                    </Button>
+                  </div>
+                  
+                  {/* Document Info */}
+                  <div className="p-4 border-t border-[#c4a35a]/10">
+                    <h4 className="text-sm font-semibold text-[#3d3d3d] line-clamp-2 mb-2">
+                      {doc.title}
+                    </h4>
+                    {doc.description && (
+                      <p className="text-xs text-[#3d3d3d]/60 line-clamp-2 mb-3">
+                        {doc.description}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between text-xs text-[#3d3d3d]/50">
+                      <span>{formatFileSize(doc.fileSize)}</span>
+                      <span className="truncate ml-2 max-w-[120px]">{doc.fileName}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Footer Note */}
+        <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-8 text-center"
+          className="text-center text-sm text-[#3d3d3d]/50 mt-12"
         >
-          <p className="text-sm text-stone-500">
-            All displayed documents are official documents submitted to the relevant authorities
-          </p>
-        </motion.div>
+          All displayed documents are official documents submitted to the relevant authorities
+        </motion.p>
       </div>
     </section>
   );

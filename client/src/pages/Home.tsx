@@ -99,6 +99,7 @@ export default function Home() {
     titleHighlight: heroData.titleHighlight || 'Dispute Case',
     subtitle: heroData.subtitle || 'SHHEER Project',
     description: heroData.description || '',
+    secondaryDescription: heroData.secondaryDescription || '',
     guaranteeRef: heroData.guaranteeRef || '',
     dealValue: heroData.dealValue || '',
     criticalPeriod: heroData.criticalPeriod || '',

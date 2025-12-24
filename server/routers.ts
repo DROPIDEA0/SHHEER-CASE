@@ -539,6 +539,7 @@ export const appRouter = router({
       }),
 
     // WhatsApp Settings
+    getWhatsAppSettings: adminProcedure.query(() => db.getWhatsAppSettings()),
     upsertWhatsAppSettings: adminProcedure
       .input(z.object({ isEnabled: z.boolean().optional(), phoneNumber: z.string().optional(), message: z.string().optional(), position: z.string().optional() }))
       .mutation(({ input }) => db.upsertWhatsAppSettings(input)),
